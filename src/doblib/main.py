@@ -84,7 +84,7 @@ def main(args=None):
     elif args.command in ("t", "test"):
         # Run unit tests in the environment
         sys.exit(CIEnvironment(args.cfg).test(left))
-    elif args.command in ("flake8", "pylint", "eslint", "isort", "black", "prettier"):
+    elif args.command in CI:
         # Run tests on the environment
         sys.exit(CIEnvironment(args.cfg).ci(args.command, left))
     elif args.command in ("u", "update"):
