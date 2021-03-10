@@ -1,0 +1,64 @@
+bootstrap:
+  extend: odoo.project.yaml
+  coverage: True
+
+local: ${default}
+
+substring: 0.${odoo:options:testing}.4
+
+dict of lists:
+  - ${odoo:options:testing}
+  - a: ${odoo:options:testing}
+  - null
+
+list of dicts:
+  - {3: "${odoo:options:testing}.4"}
+  - {2: "0.${odoo:options:testing}"}
+
+list of lists:
+  -
+    - ${odoo:options:testing}.${odoo:options:testing}
+
+odoo:
+  addons_path:
+    - addons
+  options:
+    testing: "1.2.3"
+    logging: info
+    to_none: null
+    load_language: en_US
+    additional.key: value
+  users:
+    admin: admin
+
+modules:
+  - normal
+  - dev: dev
+  - dev_staging: [dev, staging]
+  - staging: [staging]
+
+repos:
+  parts/abc:
+    merges:
+      - origin master
+  parts/def: {}
+
+empty: ~
+
+actions:
+  action:
+    invalid_action:
+      test: 42
+    invalid_domain:
+      model: unknown
+      domain: 21
+    action_update:
+      model: unknown
+      test: 42
+    action_delete:
+      action: delete
+      model: unknown
+      test: 23
+    action_unknown:
+      action: unknown
+      model: unknown

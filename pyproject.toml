@@ -1,0 +1,35 @@
+[build-system]
+requires = [ "setuptools >= 35.0.2", "wheel >= 0.29.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ['py36', 'py37', 'py38']
+include = '(\.pyi?$|src|tests)'
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = clean,py38,report
+
+[testenv]
+deps = pytest
+       pytest-cov
+       coverage
+depends:
+    py38: clean
+    report: py38
+commands = pytest --cov {envsitepackagesdir}/dob --cov-append
+
+[testenv:report]
+skip_install = true
+deps = coverage
+commands =
+  coverage html
+  coverage report --fail-under=80
+
+[testenv:clean]
+skip_install = true
+deps = coverage
+commands = coverage erase
+"""
