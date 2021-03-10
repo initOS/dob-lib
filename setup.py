@@ -9,7 +9,7 @@ def read(fname):
 
 
 setup(
-    name="dob",
+    name="doblib",
     version="0.1",
     author="initOS GmbH",
     author_email="info@initos.com",

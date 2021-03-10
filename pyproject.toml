@@ -19,7 +19,7 @@ deps = pytest
 depends:
     py38: clean
     report: py38
-commands = pytest --cov {envsitepackagesdir}/dob --cov-append
+commands = pytest --cov {envsitepackagesdir}/doblib --cov-append
 
 [testenv:report]
 skip_install = true

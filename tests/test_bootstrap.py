@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-from dob.bootstrap import BootstrapEnvironment, aggregate_repo
+from doblib.bootstrap import BootstrapEnvironment, aggregate_repo
 
 
 def aggregate_exception(repo, args, sem, err_queue):
@@ -40,7 +40,7 @@ def test_init(env):
     env._bootstrap.assert_called_once()
 
 
-@mock.patch("dob.bootstrap.match_dir", return_value=False)
+@mock.patch("doblib.bootstrap.match_dir", return_value=False)
 def test_aggregate_repo(match_mock):
     m = mock.MagicMock()
     aggregate_repo(m, m, m, m)
@@ -67,10 +67,10 @@ def test_aggregate_repo(match_mock):
     m.aggregate.assert_not_called()
 
 
-@mock.patch("dob.bootstrap.traceback")
-@mock.patch("dob.bootstrap.Repo")
-@mock.patch("dob.bootstrap.aggregate_repo")
-@mock.patch("dob.bootstrap.get_repos", return_value=[{"cwd": "unknown"}])
+@mock.patch("doblib.bootstrap.traceback")
+@mock.patch("doblib.bootstrap.Repo")
+@mock.patch("doblib.bootstrap.aggregate_repo")
+@mock.patch("doblib.bootstrap.get_repos", return_value=[{"cwd": "unknown"}])
 def test_bootstrap(repos, aggregate, repo, traceback, env):
     env.generate_config = mock.MagicMock()
 
@@ -84,7 +84,7 @@ def test_bootstrap(repos, aggregate, repo, traceback, env):
     env.init(["-j", "1"])
     aggregate.assert_called()
 
-    with mock.patch("dob.bootstrap.Queue") as m:
+    with mock.patch("doblib.bootstrap.Queue") as m:
         queue = m.return_value
         queue.empty.return_value = False
 

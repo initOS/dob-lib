@@ -9,8 +9,8 @@ from unittest import mock
 
 import pytest
 
-from dob import base
-from dob.env import Environment, load_config_arguments
+from doblib import base
+from doblib.env import Environment, load_config_arguments
 
 
 @pytest.fixture

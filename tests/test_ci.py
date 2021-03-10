@@ -7,8 +7,8 @@ from unittest import mock
 
 import pytest
 
-from dob import base
-from dob.ci import CIEnvironment
+from doblib import base
+from doblib.ci import CIEnvironment
 
 
 @pytest.fixture
@@ -48,13 +48,13 @@ def test_ci(env):
     env._ci_pylint.assert_called_once()
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 def test_ci_black(call, env):
     assert env.ci("black") == 42
     call.assert_called_once()
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 @mock.patch("shutil.which", return_value=False)
 def test_ci_eslint(which, call, env):
     assert env.ci("eslint") == 1
@@ -65,19 +65,19 @@ def test_ci_eslint(which, call, env):
     call.assert_called_once()
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 def test_ci_flake8(call, env):
     assert env.ci("flake8") == 42
     call.assert_called_once()
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 def test_ci_isort(call, env):
     assert env.ci("isort") == 42
     call.assert_called_once()
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 @mock.patch("shutil.which", return_value=False)
 def test_ci_prettier(which, call, env):
     assert env.ci("prettier") == 1
@@ -94,7 +94,7 @@ def test_ci_prettier(which, call, env):
         call.assert_called_once()
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 def test_ci_pylint(call, env):
     assert env.ci("pylint") == 42
     call.assert_called_once()

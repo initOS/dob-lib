@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from dob.action import ALNUM, ActionEnvironment
+from doblib.action import ALNUM, ActionEnvironment
 
 
 @pytest.fixture

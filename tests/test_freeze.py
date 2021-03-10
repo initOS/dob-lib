@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-from dob.freeze import FreezeEnvironment
+from doblib.freeze import FreezeEnvironment
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ def test_freeze_packages(env):
         assert fp.read()
 
 
-@mock.patch("dob.utils.call", return_value="")
+@mock.patch("doblib.utils.call", return_value="")
 def test_freeze_repositories(call_mock, env):
     env._freeze_mode = mock.MagicMock(return_value=True)
     with NamedTemporaryFile() as fp:

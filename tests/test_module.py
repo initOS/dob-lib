@@ -8,8 +8,8 @@ from unittest import mock
 
 import pytest
 
-from dob import base
-from dob.module import ModuleEnvironment, no_flags
+from doblib import base
+from doblib.module import ModuleEnvironment, no_flags
 
 
 @pytest.fixture

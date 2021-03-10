@@ -11,7 +11,7 @@ as core component to:
 
 ## Installation
 
-```$ pip3 install dob```
+```$ pip3 install doblib```
 
 ## Usage
 

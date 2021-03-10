@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from dob.run import RunEnvironment
+from doblib.run import RunEnvironment
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def test_shell(env):
         assert sys.argv == [fp.name]
 
 
-@mock.patch("dob.utils.call", return_value=42)
+@mock.patch("doblib.utils.call", return_value=42)
 def test_start(call_mock, env):
     assert env.start() is False
 

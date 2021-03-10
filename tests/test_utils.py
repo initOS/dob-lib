@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from dob import utils
+from doblib import utils
 
 
 def test_merge():
