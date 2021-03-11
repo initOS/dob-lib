@@ -94,7 +94,17 @@ def test_ci_prettier(which, call, env):
         call.assert_called_once()
 
 
+@mock.patch("glob.glob", return_value=["a.py", "b.py"])
 @mock.patch("doblib.utils.call", return_value=42)
-def test_ci_pylint(call, env):
+def test_ci_pylint(call, glob, env):
     assert env.ci("pylint") == 42
     call.assert_called_once()
+
+    call.reset_mock()
+    assert env.ci("pylint") == 42
+    call.assert_called_once()
+
+    glob.return_value = []
+    call.reset_mock()
+    assert env.ci("pylint") == 0
+    call.assert_not_called()

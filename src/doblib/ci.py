@@ -85,14 +85,18 @@ class CIEnvironment(env.Environment):
 
     def _ci_pylint(self, options, args, paths):
         """ Run pylint tests for Odoo """
+        files = []
         for path in paths:
-            args.extend(glob.glob(f"{path}/**/*.py", recursive=True))
+            files.extend(glob.glob(f"{path}/**/*.py", recursive=True))
+
+        if not files:
+            return 0
 
         cmd = [sys.executable, "-m", "pylint"]
         if os.path.isfile(".pylintrc"):
             cmd.append("--rcfile=.pylintrc")
 
-        return utils.call(*cmd, *args, pipe=False)
+        return utils.call(*cmd, *args, *files, pipe=False)
 
     def ci(self, ci, args=None):
         """ Run CI tests """
