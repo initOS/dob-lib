@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name="doblib",
-    version="0.2",
+    version="0.3",
     author="initOS GmbH",
     author_email="info@initos.com",
     description="Management tool for Odoo installations",
@@ -33,7 +33,7 @@ setup(
         "pytest-cov",
         "PyYAML",
     ],
-    entry_points={"console_scripts": ["dob = dob.main:main"]},
+    entry_points={"console_scripts": ["dob = doblib.main:main"]},
     classifiers=[
         "Environment :: Console",
         "License :: OSI Approved :: Apache Software License",
