@@ -33,7 +33,7 @@ class CIEnvironment(env.Environment):
         cmd = [sys.executable, "-m", "black"]
 
         if not options.fix:
-            cmd += ["--check"]
+            cmd += ["--check", "--diff"]
 
         return utils.call(*cmd, *args, *paths, pipe=False)
 
@@ -59,7 +59,7 @@ class CIEnvironment(env.Environment):
 
         cmd = [sys.executable, "-m", "isort"]
         if not options.fix:
-            cmd.append("--check")
+            cmd.extend(("--check", "--diff"))
 
         if utils.Version(isort.__version__) < (5,):
             cmd.append("--recursive")
