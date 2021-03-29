@@ -87,7 +87,9 @@ class CIEnvironment(env.Environment):
         """ Run pylint tests for Odoo """
         files = []
         for path in paths:
+            files.extend(glob.glob(f"{path}/**/*.csv", recursive=True))
             files.extend(glob.glob(f"{path}/**/*.py", recursive=True))
+            files.extend(glob.glob(f"{path}/**/*.xml", recursive=True))
 
         if not files:
             return 0
