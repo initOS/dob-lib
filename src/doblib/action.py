@@ -190,6 +190,34 @@ class ActionEnvironment(env.Environment):
                     vals[name] = self._apply(rec, name, **apply_act)
                 rec.write(vals)
 
+    def _action_insert(self, env, model, domain, references, values):
+        if not domain or not values or model not in env or env[model].search(domain):
+            return
+
+        # Resolve references
+        resolved_refs = {}
+        for key, val in references.items():
+            resolved_refs[key] = env.ref(val).id
+
+        def _replace_recursively(value, replace_dict):
+            if isinstance(value, dict):
+                iterator = value
+            elif isinstance(value, list):
+                iterator = range(0, len(value))
+            else:
+                return
+
+            for index in iterator:
+                if isinstance(value[index], str):
+                    if value[index] in replace_dict:
+                        value[index] = replace_dict[value[index]]
+                else:
+                    _replace_recursively(value[index], replace_dict)
+
+        _replace_recursively(values, resolved_refs)
+
+        env[model].with_context(active_test=False).create(values)
+
     def apply_action(self, args=None):
         """ Apply in the configuration defined actions on the database """
         actions = self.get("actions", default={})
@@ -229,5 +257,10 @@ class ActionEnvironment(env.Environment):
                         self._action_update(env, model, domain, values)
                     elif act == "delete":
                         self._action_delete(env, model, domain)
+                    elif act == "insert":
+                        values = item.get("values", {})
+                        references = item.get("references", {})
+
+                        self._action_insert(env, model, domain, references, values)
                     else:
                         utils.error(f"Undefined action {act}")

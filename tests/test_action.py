@@ -134,9 +134,51 @@ def test_action_update(env):
     records.write.assert_called_once_with({"test": env._apply.return_value})
 
 
+def test_action_insert(env):
+    m = mock.MagicMock()
+    create = m.with_context.return_value.create
+    m.search.return_value = False
+
+    odoo_env = mock.MagicMock()
+    odoo_env_dict = {"model": m}
+    odoo_env.__getitem__.side_effect = odoo_env_dict.__getitem__
+    odoo_env.__contains__.side_effect = odoo_env_dict.__contains__
+
+    ref_mock = mock.MagicMock()
+    ref_mock.id = 5
+    references = {"reference": ref_mock}
+    odoo_env.ref.side_effect = references.__getitem__
+
+    env._action_insert(odoo_env, "model", [], {}, {})
+    create.assert_not_called()
+    odoo_env.ref.assert_not_called()
+
+    env._action_insert(
+        odoo_env,
+        "wrong.model",
+        [["name", "=", "test"]],
+        {"$value": "reference"},
+        {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
+    )
+    create.assert_not_called()
+    odoo_env.ref.assert_not_called()
+
+    env._action_insert(
+        odoo_env,
+        "model",
+        [["name", "=", "test"]],
+        {"$value": "reference"},
+        {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
+    )
+    create.assert_called_once_with(
+        {"name": "test", "test": 5, "list": [{"other_test": 5}]},
+    )
+
+
 def test_apply_action(env):
     env._action_update = mock.MagicMock()
     env._action_delete = mock.MagicMock()
+    env._action_insert = mock.MagicMock()
     env._init_odoo = mock.MagicMock(return_value=False)
     env.apply_action(["action"])
 
@@ -148,6 +190,7 @@ def test_apply_action(env):
 
     env._action_update.assert_called_once()
     env._action_delete.assert_called_once()
+    env._action_insert.assert_called_once()
 
 
 def test_apply(env):
