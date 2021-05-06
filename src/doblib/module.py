@@ -2,24 +2,12 @@
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
+import importlib
+import os
+import sys
 from contextlib import closing
 
 from . import base, env, utils
-
-try:
-    import pre_install
-except ImportError:
-    pre_install = None
-
-try:
-    import pre_update
-except ImportError:
-    pre_update = None
-
-try:
-    import post_update
-except ImportError:
-    post_update = None
 
 
 def no_flags(x):
@@ -61,15 +49,23 @@ def load_update_arguments(args):
 class ModuleEnvironment(env.Environment):
     """ Class to handle modules """
 
-    def _run_migration(self, db_name, script):
+    def _run_migration(self, db_name, script_name):
         """ Run a migration script by executing the migrate function """
-        if script:
-            utils.info(f"Executing {script.__name__.replace('_', ' ')} script")
-            with self.env(db_name) as env:
-                version = utils.Version(
-                    env["ir.config_parameter"].get_param("db_version", False)
-                )
-                script.migrate(env, version)
+        path = sys.path[:]
+        sys.path.append(os.getcwd())
+        try:
+            script = importlib.import_module(script_name)
+        except ImportError:
+            return
+        finally:
+            sys.path = path
+
+        utils.info(f"Executing {script.__name__.replace('_', ' ')} script")
+        with self.env(db_name) as env:
+            version = utils.Version(
+                env["ir.config_parameter"].get_param("db_version", False)
+            )
+            script.migrate(env, version)
 
     def get_modules(self):
         """ Return the list of modules """
@@ -191,7 +187,7 @@ class ModuleEnvironment(env.Environment):
                     initialized = True
 
             # Execute the pre install script
-            self._run_migration(db_name, pre_install)
+            self._run_migration(db_name, "pre_install")
 
             # Get the modules to install
             if initialized:
@@ -207,7 +203,7 @@ class ModuleEnvironment(env.Environment):
                 self.install_all(db_name, uninstalled)
 
             # Execute the pre update script
-            self._run_migration(db_name, pre_update)
+            self._run_migration(db_name, "pre_update")
 
             # Update all modules which aren't installed before
             if args.modules:
@@ -220,7 +216,7 @@ class ModuleEnvironment(env.Environment):
                 self.update_changed(db_name, uninstalled)
 
             # Execute the post update script
-            self._run_migration(db_name, post_update)
+            self._run_migration(db_name, "post_update")
 
             # Finish everything
             with self.env(db_name) as env:
@@ -236,4 +232,5 @@ class ModuleEnvironment(env.Environment):
                 # Write the version into the database
                 utils.info("Setting database version")
                 version = self.get(base.SECTION, "version", default="0.0")
+                print(self._config, version)
                 env["ir.config_parameter"].set_param("db_version", version)

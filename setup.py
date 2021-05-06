@@ -31,6 +31,7 @@ setup(
         "isort",
         "pylint_odoo",
         "pytest-cov",
+        "pytest-odoo",
         "PyYAML",
     ],
     entry_points={"console_scripts": ["dob = doblib.main:main"]},

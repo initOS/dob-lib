@@ -22,13 +22,22 @@ def env():
 
 
 def test_run_migration(env):
-    odoo_env = env.env = mock.MagicMock()
-    env._run_migration("odoo", None)
-    odoo_env.assert_not_called()
+    cur = os.getcwd()
+    os.chdir("tests/environment/")
+    try:
+        env.env = mock.MagicMock()
+        odoo_env = env.env.return_value.__enter__.return_value = mock.MagicMock()
+        odoo_env["ir.config_parameter"].get_param.return_value = "4.2"
 
-    script = mock.MagicMock()
-    script.__name__ = "script"
-    env._run_migration("odoo", script)
+        # Non-existing migration
+        env._run_migration("odoo", "pre_update")
+        odoo_env.check.assert_not_called()
+
+        # Existing migration
+        env._run_migration("odoo", "post_update")
+        odoo_env.check.assert_called_once_with("4.2")
+    finally:
+        os.chdir(cur)
 
 
 def test_get_modules(env):

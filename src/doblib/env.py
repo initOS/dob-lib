@@ -175,10 +175,7 @@ class Environment:
         # Get all installed modules
         reg = odoo.registry(db_name)
         with closing(reg.cursor()) as cr:
-            uid = odoo.SUPERUSER_ID
-            ctx = odoo.api.Environment(cr, uid, {})["res.users"].context_get()
-
-            yield odoo.api.Environment(cr, uid, ctx)
+            yield odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
 
             if rollback:
                 cr.rollback()
