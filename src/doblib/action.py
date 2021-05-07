@@ -155,7 +155,7 @@ class ActionEnvironment(env.Environment):
 
         return lower + timedelta(days=random.randint(0, (upper - lower).days))
 
-    def _resolve_references(self, env, references, values):
+    def _replace_references(self, env, references, values):
         resolved_refs = {}
         for key, val in references.items():
             resolved_refs[key] = env.ref(val).id
@@ -180,7 +180,7 @@ class ActionEnvironment(env.Environment):
     def _action_delete(self, env, model, domain, references):
         """ Runs the delete action """
         if model in env:
-            self._resolve_references(env, references, domain)
+            self._replace_references(env, references, domain)
             env[model].with_context(active_test=False).search(domain).unlink()
 
     def _action_update(self, env, model, domain, references, values):
@@ -188,8 +188,8 @@ class ActionEnvironment(env.Environment):
         if not values or model not in env:
             return
 
-        self._resolve_references(env, references, domain)
-        self._resolve_references(env, references, values)
+        self._replace_references(env, references, domain)
+        self._replace_references(env, references, values)
 
         records = env[model].with_context(active_test=False).search(domain)
 
@@ -220,8 +220,8 @@ class ActionEnvironment(env.Environment):
         if not domain or not values or model not in env or env[model].search(domain):
             return
 
-        self._resolve_references(env, references, domain)
-        self._resolve_references(env, references, values)
+        self._replace_references(env, references, domain)
+        self._replace_references(env, references, values)
 
         env[model].with_context(active_test=False).create(values)
 
