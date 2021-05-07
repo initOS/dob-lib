@@ -62,3 +62,6 @@ actions:
     action_unknown:
       action: unknown
       model: unknown
+    action_insert:
+      action: insert
+      model: unknown

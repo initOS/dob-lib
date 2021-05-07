@@ -155,15 +155,41 @@ class ActionEnvironment(env.Environment):
 
         return lower + timedelta(days=random.randint(0, (upper - lower).days))
 
-    def _action_delete(self, env, model, domain):
+    def _replace_references(self, env, references, values):
+        resolved_refs = {}
+        for key, val in references.items():
+            resolved_refs[key] = env.ref(val).id
+
+        self._replace_recursively(values, resolved_refs)
+
+    def _replace_recursively(self, value, replace_dict):
+        if isinstance(value, dict):
+            iterator = value
+        elif isinstance(value, list):
+            iterator = range(0, len(value))
+        else:
+            return
+
+        for index in iterator:
+            if isinstance(value[index], str):
+                if value[index] in replace_dict:
+                    value[index] = replace_dict[value[index]]
+            else:
+                self._replace_recursively(value[index], replace_dict)
+
+    def _action_delete(self, env, model, domain, references):
         """ Runs the delete action """
         if model in env:
+            self._replace_references(env, references, domain)
             env[model].with_context(active_test=False).search(domain).unlink()
 
-    def _action_update(self, env, model, domain, values):
+    def _action_update(self, env, model, domain, references, values):
         """ Runs the update action """
         if not values or model not in env:
             return
+
+        self._replace_references(env, references, domain)
+        self._replace_references(env, references, values)
 
         records = env[model].with_context(active_test=False).search(domain)
 
@@ -189,6 +215,15 @@ class ActionEnvironment(env.Environment):
                 for name, apply_act in dynamic.items():
                     vals[name] = self._apply(rec, name, **apply_act)
                 rec.write(vals)
+
+    def _action_insert(self, env, model, domain, references, values):
+        if not domain or not values or model not in env or env[model].search(domain):
+            return
+
+        self._replace_references(env, references, domain)
+        self._replace_references(env, references, values)
+
+        env[model].with_context(active_test=False).create(values)
 
     def apply_action(self, args=None):
         """ Apply in the configuration defined actions on the database """
@@ -224,10 +259,15 @@ class ActionEnvironment(env.Environment):
                         continue
 
                     act = item.get("action", "update")
+                    references = item.get("references", {})
                     if act == "update":
                         values = item.get("values", {})
-                        self._action_update(env, model, domain, values)
+                        self._action_update(env, model, domain, references, values)
                     elif act == "delete":
-                        self._action_delete(env, model, domain)
+                        self._action_delete(env, model, domain, references)
+                    elif act == "insert":
+                        values = item.get("values", {})
+
+                        self._action_insert(env, model, domain, references, values)
                     else:
                         utils.error(f"Undefined action {act}")
