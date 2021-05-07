@@ -20,6 +20,28 @@ def env():
     return env
 
 
+@pytest.fixture
+def module():
+    m = mock.MagicMock()
+    m.search.return_value = False
+    return m
+
+
+@pytest.fixture
+def odoo_env(module):
+    odoo_env = mock.MagicMock()
+    odoo_env_dict = {"test": module}
+    odoo_env.__getitem__.side_effect = odoo_env_dict.__getitem__
+    odoo_env.__contains__.side_effect = odoo_env_dict.__contains__
+
+    ref_mock = mock.MagicMock()
+    ref_mock.id = 5
+    references = {"reference": ref_mock}
+    odoo_env.ref.side_effect = references.__getitem__
+
+    return odoo_env
+
+
 def test_boolean(env):
     assert env._boolean({"test": False}, field="test") is False
     assert env._boolean({"test": True}, field="test") is True
@@ -98,57 +120,36 @@ def test_date(env):
         randint.assert_called_once()
 
 
-def test_action_delete(env):
+def test_action_delete(env, odoo_env, module):
     domain = [["abc", "=", 42], ["def", "=", "$value"]]
     refs = {"$value": "reference"}
     domain_resolved = [["abc", "=", 42], ["def", "=", 5]]
-    m = mock.MagicMock()
-    search = m.with_context.return_value.search
 
-    odoo_env = mock.MagicMock()
-    odoo_env_dict = {"test": m}
-    odoo_env.__getitem__.side_effect = odoo_env_dict.__getitem__
-    odoo_env.__contains__.side_effect = odoo_env_dict.__contains__
-
-    ref_mock = mock.MagicMock()
-    ref_mock.id = 5
-    references = {"reference": ref_mock}
-    odoo_env.ref.side_effect = references.__getitem__
+    search = module.with_context.return_value.search
 
     env._action_delete(odoo_env, "unknown", domain, {})
-    m.with_context.assert_not_called()
+    module.with_context.assert_not_called()
     search.assert_not_called()
 
     env._action_delete(odoo_env, "test", domain, {})
-    m.with_context.assert_called_once_with(active_test=False)
+    module.with_context.assert_called_once_with(active_test=False)
     search.assert_called_once_with(domain)
     search.return_value.unlink.assert_called_once()
 
     search.reset_mock()
-    m.with_context.reset_mock()
+    module.with_context.reset_mock()
     env._action_delete(odoo_env, "test", domain, refs)
-    m.with_context.assert_called_once_with(active_test=False)
+    module.with_context.assert_called_once_with(active_test=False)
     search.assert_called_once_with(domain_resolved)
     search.return_value.unlink.assert_called_once()
 
 
-def test_action_update(env):
+def test_action_update(env, odoo_env, module):
     env._apply = mock.MagicMock()
-    m = mock.MagicMock()
-    search = m.with_context.return_value.search
-
-    odoo_env = mock.MagicMock()
-    odoo_env_dict = {"test": m}
-    odoo_env.__getitem__.side_effect = odoo_env_dict.__getitem__
-    odoo_env.__contains__.side_effect = odoo_env_dict.__contains__
-
-    ref_mock = mock.MagicMock()
-    ref_mock.id = 5
-    references = {"reference": ref_mock}
-    odoo_env.ref.side_effect = references.__getitem__
+    search = module.with_context.return_value.search
 
     env._action_update(odoo_env, "test", [], {}, {})
-    m.with_context.assert_not_called()
+    module.with_context.assert_not_called()
     search.assert_not_called()
 
     records = search.return_value
@@ -168,22 +169,10 @@ def test_action_update(env):
     records.write.assert_called_once_with({"test": 5})
 
 
-def test_action_insert(env):
-    m = mock.MagicMock()
-    create = m.with_context.return_value.create
-    m.search.return_value = False
+def test_action_insert(env, odoo_env, module):
+    create = module.with_context.return_value.create
 
-    odoo_env = mock.MagicMock()
-    odoo_env_dict = {"model": m}
-    odoo_env.__getitem__.side_effect = odoo_env_dict.__getitem__
-    odoo_env.__contains__.side_effect = odoo_env_dict.__contains__
-
-    ref_mock = mock.MagicMock()
-    ref_mock.id = 5
-    references = {"reference": ref_mock}
-    odoo_env.ref.side_effect = references.__getitem__
-
-    env._action_insert(odoo_env, "model", [], {}, {})
+    env._action_insert(odoo_env, "test", [], {}, {})
     create.assert_not_called()
     odoo_env.ref.assert_not_called()
 
@@ -199,7 +188,7 @@ def test_action_insert(env):
 
     env._action_insert(
         odoo_env,
-        "model",
+        "test",
         [["name", "=", "test"]],
         {"$value": "reference"},
         {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
@@ -208,10 +197,10 @@ def test_action_insert(env):
         {"name": "test", "test": 5, "list": [{"other_test": 5}]},
     )
 
-    m.search.return_value = True
+    module.search.return_value = True
     env._action_insert(
         odoo_env,
-        "model",
+        "test",
         [["name", "=", "test"]],
         {"$value": "reference"},
         {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
