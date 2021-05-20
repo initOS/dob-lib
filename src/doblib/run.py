@@ -54,7 +54,8 @@ class RunEnvironment(env.Environment):
 
         debugger = self.get(base.SECTION, "debugger")
         if debugger == "debugpy":
-            debug_cmd = "-m", "debugpy", "--listen", "0.0.0.0:6899", "--wait-for-client"
+            utils.info(f"Starting with debugger {debugger}")
+            debug_cmd = "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client"
         else:
             debug_cmd = ()
 
