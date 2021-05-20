@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name="doblib",
-    version="0.6",
+    version="0.7",
     author="initOS GmbH",
     author_email="info@initos.com",
     description="Management tool for Odoo installations",
@@ -25,6 +25,7 @@ setup(
     install_requires=[
         "black",
         "coverage",
+        "debugpy",
         "flake8",
         "git-aggregator",
         "ipython",

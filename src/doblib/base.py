@@ -10,4 +10,5 @@ SECTION = "bootstrap"
 ENVIRONMENT = {
     "ODOO_VERSION": ("odoo", "version"),
     "BOOTSTRAP_MODE": (SECTION, "mode"),
+    "BOOTSTRAP_DEBUGGER": (SECTION, "debugger"),
 }

@@ -52,5 +52,18 @@ class RunEnvironment(env.Environment):
         if not path:
             return False
 
-        cmd = sys.executable, "odoo-bin", "-c", base.ODOO_CONFIG
-        return utils.call(*cmd, *args, cwd=path)
+        debugger = self.get(base.SECTION, "debugger")
+        if debugger == "debugpy":
+            debug_cmd = "-m", "debugpy", "--listen", "0.0.0.0:6899", "--wait-for-client"
+        else:
+            debug_cmd = ()
+
+        return utils.call(
+            sys.executable,
+            *debug_cmd,
+            "odoo-bin",
+            "-c",
+            base.ODOO_CONFIG,
+            *args,
+            cwd=path,
+        )

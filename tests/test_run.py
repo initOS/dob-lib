@@ -8,6 +8,7 @@ from unittest import mock
 
 import pytest
 
+from doblib import base
 from doblib.run import RunEnvironment
 
 
@@ -48,4 +49,19 @@ def test_start(call_mock, env):
 
     env._init_odoo = mock.MagicMock(return_value=True)
     assert env.start() == 42
+    call_mock.assert_called_once()
+
+
+@mock.patch("doblib.utils.call")
+def test_start_with_debugger(call_mock, env):
+    def check_debugger(debugger, *args, **kwargs):
+        if args[1:3] != ("-m", debugger):
+            raise ValueError("Missing debugpy integration")
+        return 128
+
+    env._init_odoo = mock.MagicMock(return_value=True)
+
+    call_mock.side_effect = lambda *a, **kw: check_debugger("debugpy", *a, **kw)
+    env.set(base.SECTION, "debugger", value="debugpy")
+    assert env.start() == 128
     call_mock.assert_called_once()
