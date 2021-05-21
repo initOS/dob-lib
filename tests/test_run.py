@@ -58,7 +58,6 @@ def test_start(call_mock, env):
 def test_start_with_debugger(call_mock, env):
     def check_debugger(debugger, *args, **kwargs):
         if debugger == "dev" and "--dev=all" not in args:
-            print(args, kwargs)
             raise ValueError("Missing dev=all")
         elif debugger in DEBUGGERS and args[1:3] != ("-m", debugger):
             raise ValueError("Missing debugpy integration")
