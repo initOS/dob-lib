@@ -232,5 +232,4 @@ class ModuleEnvironment(env.Environment):
                 # Write the version into the database
                 utils.info("Setting database version")
                 version = self.get(base.SECTION, "version", default="0.0")
-                print(self._config, version)
                 env["ir.config_parameter"].set_param("db_version", version)
