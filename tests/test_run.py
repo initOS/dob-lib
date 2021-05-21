@@ -11,6 +11,8 @@ import pytest
 from doblib import base
 from doblib.run import RunEnvironment
 
+DEBUGGERS = ["debugpy"]
+
 
 @pytest.fixture
 def env():
@@ -55,7 +57,10 @@ def test_start(call_mock, env):
 @mock.patch("doblib.utils.call")
 def test_start_with_debugger(call_mock, env):
     def check_debugger(debugger, *args, **kwargs):
-        if args[1:3] != ("-m", debugger):
+        if debugger == "dev" and "--dev=all" not in args:
+            print(args, kwargs)
+            raise ValueError("Missing dev=all")
+        elif debugger in DEBUGGERS and args[1:3] != ("-m", debugger):
             raise ValueError("Missing debugpy integration")
         return 128
 
@@ -63,5 +68,11 @@ def test_start_with_debugger(call_mock, env):
 
     call_mock.side_effect = lambda *a, **kw: check_debugger("debugpy", *a, **kw)
     env.set(base.SECTION, "debugger", value="debugpy")
+    assert env.start() == 128
+    call_mock.assert_called_once()
+
+    call_mock.reset_mock()
+    call_mock.side_effect = lambda *a, **kw: check_debugger("dev", *a, **kw)
+    env.set(base.SECTION, "debugger", value="dev")
     assert env.start() == 128
     call_mock.assert_called_once()

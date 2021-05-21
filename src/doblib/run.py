@@ -53,11 +53,12 @@ class RunEnvironment(env.Environment):
             return False
 
         debugger = self.get(base.SECTION, "debugger")
+        debug_cmd = ()
         if debugger == "debugpy":
             utils.info(f"Starting with debugger {debugger}")
             debug_cmd = "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client"
-        else:
-            debug_cmd = ()
+        elif debugger == "dev":
+            args += ("--dev=all",)
 
         return utils.call(
             sys.executable,
