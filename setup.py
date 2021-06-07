@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name="doblib",
-    version="0.7",
+    version="0.7.1",
     author="initOS GmbH",
     author_email="info@initos.com",
     description="Management tool for Odoo installations",
