@@ -97,9 +97,9 @@ class CIEnvironment(env.Environment):
             cmd.append("--recursive")
 
         for pattern in ignores:
-            cmd += ["--extend-skip-glob", f"**/{pattern}"]
-            cmd += ["--extend-skip-glob", f"**/{pattern}/**"]
-            cmd += ["--extend-skip-glob", f"{pattern}/**"]
+            cmd += ["--skip-glob", f"**/{pattern}"]
+            cmd += ["--skip-glob", f"**/{pattern}/**"]
+            cmd += ["--skip-glob", f"{pattern}/**"]
 
         return utils.call(*cmd, *args, *paths, pipe=False)
 

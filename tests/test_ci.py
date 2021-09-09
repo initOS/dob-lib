@@ -87,11 +87,10 @@ def test_ci_flake8(call, env):
 def test_ci_isort(call, env):
     assert env.ci("isort") == 42
     call.assert_called_once_with(
-        sys.executable, "-m", "isort", "--check", "--diff",
-        "--extend-skip-glob", "**/test1*", "--extend-skip-glob",
-        "**/test1*/**", "--extend-skip-glob", "test1*/**",
-        "--extend-skip-glob", "**/test3", "--extend-skip-glob",
-        "**/test3/**", "--extend-skip-glob", "test3/**", "addons", pipe=False,
+        sys.executable, "-m", "isort", "--check", "--diff", "--skip-glob",
+        "**/test1*", "--skip-glob", "**/test1*/**", "--skip-glob",
+        "test1*/**", "--skip-glob", "**/test3", "--skip-glob", "**/test3/**",
+        "--skip-glob", "test3/**", "addons", pipe=False,
     )
 
 
