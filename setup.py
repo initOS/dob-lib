@@ -8,6 +8,22 @@ def read(fname):
         return f.read()
 
 
+deps = [
+    "black",
+    "coverage",
+    "debugpy",
+    "flake8",
+    "git-aggregator",
+    "ipython",
+    "isort",
+    "pylint_odoo",
+    "pytest-cov",
+    "PyYAML",
+]
+
+if not os.getenv("DISABLE_PYTEST_ODOO"):
+    deps.append("pytest-odoo")
+
 setup(
     name="doblib",
     version="0.7.1",
@@ -22,19 +38,7 @@ setup(
     packages=find_packages("src"),
     package_dir={"": "src"},
     include_package_data=True,
-    install_requires=[
-        "black",
-        "coverage",
-        "debugpy",
-        "flake8",
-        "git-aggregator",
-        "ipython",
-        "isort",
-        "pylint_odoo",
-        "pytest-cov",
-        "pytest-odoo",
-        "PyYAML",
-    ],
+    install_requires=deps,
     entry_points={"console_scripts": ["dob = doblib.main:main"]},
     classifiers=[
         "Environment :: Console",

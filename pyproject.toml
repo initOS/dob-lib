@@ -20,6 +20,8 @@ depends:
     py38: clean
     report: py38
 commands = pytest --cov {envsitepackagesdir}/doblib --cov-append
+setenv =
+    DISABLE_PYTEST_ODOO = 1
 
 [testenv:report]
 skip_install = true
