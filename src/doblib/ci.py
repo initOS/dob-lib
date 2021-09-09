@@ -75,13 +75,12 @@ class CIEnvironment(env.Environment):
 
     def _ci_flake8(self, options, left, paths, ignores):
         """ Run flake8 tests """
-        exclude = "--exclude=" + ",".join(ignores)
+        cmd = [sys.executable, "-m", "flake8"]
+        if ignores:
+            cmd.append("--exclude=" + ",".join(ignores))
 
         return utils.call(
-            sys.executable,
-            "-m",
-            "flake8",
-            exclude,
+            *cmd,
             *left,
             *paths,
             pipe=False,

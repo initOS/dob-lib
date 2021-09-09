@@ -52,7 +52,7 @@ def test_ci(env):
 def test_ci_black(call, env):
     assert env.ci("black") == 42
     call.assert_called_once_with(
-        f"{os.getcwd()}/.tox/py38/bin/python", "-m", "black", "--exclude",
+        sys.executable, "-m", "black", "--exclude",
         "(test1.*|test3|\\.git|\\.hg|\\.mypy_cache|"
         "\\.tox|\\.venv|_build|buck-out|build|dist)",
         "--check", "--diff", "addons", pipe=False,
@@ -78,8 +78,8 @@ def test_ci_eslint(which, call, env):
 def test_ci_flake8(call, env):
     assert env.ci("flake8") == 42
     call.assert_called_once_with(
-        f"{os.getcwd()}/.tox/py38/bin/python", "-m", "flake8",
-        "--exclude=test1*,test3", "addons", pipe=False,
+        sys.executable, "-m", "flake8", "--exclude=test1*,test3",
+        "addons", pipe=False,
     )
 
 
@@ -87,9 +87,20 @@ def test_ci_flake8(call, env):
 def test_ci_isort(call, env):
     assert env.ci("isort") == 42
     call.assert_called_once_with(
-        f"{os.getcwd()}/.tox/py38/bin/python", "-m", "isort",
-        "--check", "--diff", "addons", pipe=False,
+        sys.executable, "-m", "isort", "--check", "--diff", "addons",
+        pipe=False,
     )
+
+    call.reset_mock()
+    with mock.patch("glob.glob", return_value=[
+        "test15/path/file.py",
+    ]):
+        assert env.ci("isort") == 42
+        call.assert_called_once_with(
+            sys.executable, "-m", "isort", "--check", "--diff", "--skip",
+            "test15/path/file.py", "--skip", "test15/path/file.py", "addons",
+            pipe=False,
+        )
 
 
 @mock.patch("doblib.utils.call", return_value=42)
@@ -126,17 +137,17 @@ def test_ci_prettier(which, call, env):
 def test_ci_pylint(call, glob, env):
     assert env.ci("pylint") == 42
     call.assert_called_once_with(
-        f"{os.getcwd()}/.tox/py38/bin/python", "-m", "pylint",
-        "--rcfile=.pylintrc", "test2/path/file.py", "test2/path/file.py",
-        "test2/path/file.py", pipe=False,
+        sys.executable, "-m", "pylint", "--rcfile=.pylintrc",
+        "test2/path/file.py", "test2/path/file.py", "test2/path/file.py",
+        pipe=False,
     )
 
     call.reset_mock()
     assert env.ci("pylint") == 42
     call.assert_called_once_with(
-        f"{os.getcwd()}/.tox/py38/bin/python", "-m", "pylint",
-        "--rcfile=.pylintrc", "test2/path/file.py", "test2/path/file.py",
-        "test2/path/file.py", pipe=False,
+        sys.executable, "-m", "pylint", "--rcfile=.pylintrc",
+        "test2/path/file.py", "test2/path/file.py", "test2/path/file.py",
+        pipe=False,
     )
 
     glob.return_value = []
