@@ -77,7 +77,7 @@ class CIEnvironment(env.Environment):
         """ Run flake8 tests """
         cmd = [sys.executable, "-m", "flake8"]
         if ignores:
-            cmd.append("--exclude=" + ",".join(ignores))
+            cmd.append("--extend-exclude=" + ",".join(ignores))
 
         return utils.call(
             *cmd,
@@ -96,13 +96,10 @@ class CIEnvironment(env.Environment):
         if utils.Version(isort.__version__) < (5,):
             cmd.append("--recursive")
 
-        files = []
-        for path in paths:
-            for pattern in ignores:
-                files.extend(glob.glob(f"{path}/**/{pattern}", recursive=True))
-
-        for file in files:
-            cmd += ["--skip", file]
+        for pattern in ignores:
+            cmd += ["--extend-skip-glob", f"**/{pattern}"]
+            cmd += ["--extend-skip-glob", f"**/{pattern}/**"]
+            cmd += ["--extend-skip-glob", f"{pattern}/**"]
 
         return utils.call(*cmd, *args, *paths, pipe=False)
 

@@ -78,7 +78,7 @@ def test_ci_eslint(which, call, env):
 def test_ci_flake8(call, env):
     assert env.ci("flake8") == 42
     call.assert_called_once_with(
-        sys.executable, "-m", "flake8", "--exclude=test1*,test3",
+        sys.executable, "-m", "flake8", "--extend-exclude=test1*,test3",
         "addons", pipe=False,
     )
 
@@ -87,20 +87,12 @@ def test_ci_flake8(call, env):
 def test_ci_isort(call, env):
     assert env.ci("isort") == 42
     call.assert_called_once_with(
-        sys.executable, "-m", "isort", "--check", "--diff", "addons",
-        pipe=False,
+        sys.executable, "-m", "isort", "--check", "--diff",
+        "--extend-skip-glob", "**/test1*", "--extend-skip-glob",
+        "**/test1*/**", "--extend-skip-glob", "test1*/**",
+        "--extend-skip-glob", "**/test3", "--extend-skip-glob",
+        "**/test3/**", "--extend-skip-glob", "test3/**", "addons", pipe=False,
     )
-
-    call.reset_mock()
-    with mock.patch("glob.glob", return_value=[
-        "test15/path/file.py",
-    ]):
-        assert env.ci("isort") == 42
-        call.assert_called_once_with(
-            sys.executable, "-m", "isort", "--check", "--diff", "--skip",
-            "test15/path/file.py", "--skip", "test15/path/file.py", "addons",
-            pipe=False,
-        )
 
 
 @mock.patch("doblib.utils.call", return_value=42)
