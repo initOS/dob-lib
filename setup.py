@@ -15,7 +15,7 @@ deps = [
     "flake8",
     "git-aggregator",
     "ipython",
-    "isort",
+    "isort>=4.3.10",
     "pylint_odoo",
     "pytest-cov",
     "PyYAML",
