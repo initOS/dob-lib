@@ -1,11 +1,11 @@
 # © 2021 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
-from fnmatch import fnmatch
 import glob
 import os
 import shutil
 import sys
+from fnmatch import fnmatch
 
 import isort
 import pytest
