@@ -5,6 +5,7 @@ import glob
 import os
 import shutil
 import sys
+from fnmatch import fnmatch
 
 import isort
 import pytest
@@ -28,16 +29,35 @@ def load_ci_arguments(args):
 class CIEnvironment(env.Environment):
     """ Class to run tests on the environment """
 
-    def _ci_black(self, options, args, paths):
+    def _ci_black(self, options, args, paths, ignores):
         """ Run black """
         cmd = [sys.executable, "-m", "black"]
+
+        # Replace pattern matching with regex
+        ignores = [pattern.replace("*", ".*").replace("?", ".") for pattern in ignores]
+
+        # Append black default excludes
+        ignores = ignores + [
+            "\\.git",
+            "\\.hg",
+            "\\.mypy_cache",
+            "\\.tox",
+            "\\.venv",
+            "_build",
+            "buck-out",
+            "build",
+            "dist",
+        ]
+
+        exclude = "(" + "|".join(ignores) + ")"
+        cmd += ["--exclude", exclude]
 
         if not options.fix:
             cmd += ["--check", "--diff"]
 
         return utils.call(*cmd, *args, *paths, pipe=False)
 
-    def _ci_eslint(self, options, args, paths):
+    def _ci_eslint(self, options, args, paths, ignores):
         """ Run eslint if tool is available """
         executable = shutil.which("eslint")
         if not executable:
@@ -48,13 +68,25 @@ class CIEnvironment(env.Environment):
         if options.fix:
             cmd.append("--fix")
 
+        for pattern in ignores:
+            cmd += ["--ignore-pattern", pattern]
+
         return utils.call(*cmd, *args, *paths, pipe=False)
 
-    def _ci_flake8(self, options, left, paths):
+    def _ci_flake8(self, options, left, paths, ignores):
         """ Run flake8 tests """
-        return utils.call(sys.executable, "-m", "flake8", *left, *paths, pipe=False)
+        cmd = [sys.executable, "-m", "flake8"]
+        if ignores:
+            cmd.append("--extend-exclude=" + ",".join(ignores))
 
-    def _ci_isort(self, options, args, paths):
+        return utils.call(
+            *cmd,
+            *left,
+            *paths,
+            pipe=False,
+        )
+
+    def _ci_isort(self, options, args, paths, ignores):
         """ Run isort """
 
         cmd = [sys.executable, "-m", "isort"]
@@ -64,32 +96,67 @@ class CIEnvironment(env.Environment):
         if utils.Version(isort.__version__) < (5,):
             cmd.append("--recursive")
 
+        for pattern in ignores:
+            cmd += ["--skip-glob", f"*/{pattern}"]
+            cmd += ["--skip-glob", f"*/{pattern}/*"]
+            cmd += ["--skip-glob", f"{pattern}/*"]
+
+        if ignores:
+            cmd.append("--filter-files")
+
         return utils.call(*cmd, *args, *paths, pipe=False)
 
-    def _ci_prettier(self, options, args, paths):
+    def _ci_prettier(self, options, args, paths, ignores):
         """ """
         executable = shutil.which("prettier")
         if not executable:
             utils.error("prettier is not installed")
             return 1
 
-        paths = [f"{path}/**/*.js" for path in paths]
-        if not any(glob.glob(p, recursive=True) for p in paths):
+        files = []
+        for path in paths:
+            files.extend(glob.glob(f"{path}/**/*.js", recursive=True))
+
+        files = list(
+            filter(
+                lambda path: not any(
+                    fnmatch(path, f"*/{pattern}")
+                    or fnmatch(path, f"*/{pattern}/*")
+                    or fnmatch(path, f"{pattern}/*")
+                    for pattern in ignores
+                ),
+                files,
+            )
+        )
+
+        if not files:
             return 0
 
         cmd = ["prettier"]
         if options.fix:
             cmd.append("--write")
 
-        return utils.call(*cmd, *args, *paths, pipe=False)
+        return utils.call(*cmd, *args, *files, pipe=False)
 
-    def _ci_pylint(self, options, args, paths):
+    def _ci_pylint(self, options, args, paths, ignores):
         """ Run pylint tests for Odoo """
         files = []
         for path in paths:
             files.extend(glob.glob(f"{path}/**/*.csv", recursive=True))
             files.extend(glob.glob(f"{path}/**/*.py", recursive=True))
             files.extend(glob.glob(f"{path}/**/*.xml", recursive=True))
+
+        files = list(
+            filter(
+                lambda path: not any(
+                    fnmatch(path, f"*/{pattern}")
+                    or fnmatch(path, f"*/{pattern}/*")
+                    or fnmatch(path, f"{pattern}/*")
+                    for pattern in ignores
+                ),
+                files,
+            )
+        )
 
         if not files:
             return 0
@@ -106,9 +173,10 @@ class CIEnvironment(env.Environment):
 
         # Always include this script in the tests
         paths = self.get("odoo", "addons_path", default=[])
+        ignores = self.get("bootstrap", "blacklist", default=[])
         func = getattr(self, f"_ci_{ci}", None)
         if ci in CI and callable(func):
-            return func(args, left, paths)
+            return func(args, left, paths, ignores)
 
         utils.error(f"Unknown CI {ci}")
         return 1
