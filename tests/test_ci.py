@@ -88,9 +88,9 @@ def test_ci_isort(call, env):
     assert env.ci("isort") == 42
     call.assert_called_once_with(
         sys.executable, "-m", "isort", "--check", "--diff", "--skip-glob",
-        "**/test1*", "--skip-glob", "**/test1*/**", "--skip-glob",
-        "test1*/**", "--skip-glob", "**/test3", "--skip-glob", "**/test3/**",
-        "--skip-glob", "test3/**", "addons", pipe=False,
+        "*/test1*", "--skip-glob", "*/test1*/*", "--skip-glob",
+        "test1*/*", "--skip-glob", "*/test3", "--skip-glob", "*/test3/*",
+        "--skip-glob", "test3/*", "--filter-files", "addons", pipe=False,
     )
 
 

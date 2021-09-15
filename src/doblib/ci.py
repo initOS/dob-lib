@@ -97,9 +97,12 @@ class CIEnvironment(env.Environment):
             cmd.append("--recursive")
 
         for pattern in ignores:
-            cmd += ["--skip-glob", f"**/{pattern}"]
-            cmd += ["--skip-glob", f"**/{pattern}/**"]
-            cmd += ["--skip-glob", f"{pattern}/**"]
+            cmd += ["--skip-glob", f"*/{pattern}"]
+            cmd += ["--skip-glob", f"*/{pattern}/*"]
+            cmd += ["--skip-glob", f"{pattern}/*"]
+
+        if ignores:
+            cmd.append("--filter-files")
 
         return utils.call(*cmd, *args, *paths, pipe=False)
 
