@@ -181,7 +181,10 @@ class ActionEnvironment(env.Environment):
         """ Runs the delete action """
         if model in env:
             self._replace_references(env, references, domain)
-            env[model].with_context(active_test=False).search(domain).unlink()
+            records = env[model].with_context(active_test=False).search(domain)
+
+            if records:
+                records.unlink()
 
     def _action_update(self, env, model, domain, references, values):
         """ Runs the update action """
@@ -192,6 +195,8 @@ class ActionEnvironment(env.Environment):
         self._replace_references(env, references, values)
 
         records = env[model].with_context(active_test=False).search(domain)
+        if not records:
+            return
 
         # Split the values in constant and dynamic
         const, dynamic = {}, {}
