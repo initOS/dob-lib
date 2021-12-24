@@ -124,7 +124,9 @@ def test_update(env):
     # Quite complex and we have to mock plenty of stuff
     odoo = sys.modules["odoo"] = mock.MagicMock()
     tools = sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.release"] = odoo.release
     tools.config.__getitem__.return_value = "odoo"
+    odoo.release.version_info = (14, 0)
     env.generate_config = mock.MagicMock()
     env.get_installed_modules = mock.MagicMock()
     env.update_all = mock.MagicMock()
@@ -142,6 +144,7 @@ def test_update(env):
     env.get_installed_modules.assert_not_called()
     env.update_changed.assert_called_once()
 
+    odoo.release.version_info = (15,)
     odoo.modules.db.is_initialized.return_value = True
     env.update()
     env.get_installed_modules.assert_called()

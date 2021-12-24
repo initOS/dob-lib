@@ -5,7 +5,7 @@ import argparse
 import importlib
 import os
 import sys
-from contextlib import closing
+from contextlib import closing, contextmanager
 
 from . import base, env, utils
 
@@ -48,6 +48,17 @@ def load_update_arguments(args):
 
 class ModuleEnvironment(env.Environment):
     """ Class to handle modules """
+
+    @contextmanager
+    def _manage(self):
+        """Wrap the manage to resolve version differrences"""
+        import odoo.release
+
+        if odoo.release.version_info >= (15,):
+            yield
+        else:
+            with odoo.api.Environment.manage():
+                yield
 
     def _run_migration(self, db_name, script_name):
         """ Run a migration script by executing the migrate function """
@@ -175,7 +186,7 @@ class ModuleEnvironment(env.Environment):
         odoo.cli.server.report_configuration()
 
         db_name = config["db_name"]
-        with odoo.api.Environment.manage():
+        with self._manage():
             # Ensure that the database is initialized
             db = odoo.sql_db.db_connect(db_name)
             initialized = False
