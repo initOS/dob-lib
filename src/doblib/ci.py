@@ -201,7 +201,7 @@ class CIEnvironment(env.Environment):
             args += ["--cov-report=html", "--cov-report=term"]
 
         # Load the odoo configuration
-        with odoo.api.Environment.manage():
+        with self._manage():
             config.parse_config(["-c", base.ODOO_CONFIG])
             odoo.cli.server.report_configuration()
             # Pass the arguments to pytest

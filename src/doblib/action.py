@@ -249,7 +249,7 @@ class ActionEnvironment(env.Environment):
         db_name = config["db_name"]
 
         utils.info(f"Running {args.action}")
-        with odoo.api.Environment.manage():
+        with self._manage():
             with self.env(db_name) as env:
                 for name, item in actions[args.action].items():
                     utils.info(f"{args.action.capitalize()} {name}")

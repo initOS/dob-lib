@@ -49,17 +49,6 @@ def load_update_arguments(args):
 class ModuleEnvironment(env.Environment):
     """ Class to handle modules """
 
-    @contextmanager
-    def _manage(self):
-        """Wrap the manage to resolve version differrences"""
-        import odoo.release
-
-        if odoo.release.version_info >= (15,):
-            yield
-        else:
-            with odoo.api.Environment.manage():
-                yield
-
     def _run_migration(self, db_name, script_name):
         """ Run a migration script by executing the migrate function """
         path = sys.path[:]

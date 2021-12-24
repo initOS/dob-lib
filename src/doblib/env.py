@@ -182,6 +182,18 @@ class Environment:
             else:
                 cr.commit()
 
+    @contextmanager
+    def _manage(self):
+        """Wrap the manage to resolve version differrences"""
+        import odoo
+        import odoo.release
+
+        if odoo.release.version_info >= (15,):
+            yield
+        else:
+            with odoo.api.Environment.manage():
+                yield
+
     def generate_config(self):
         """ Generate the Odoo configuration file """
         utils.info("Generating configuration file")
