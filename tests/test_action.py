@@ -217,8 +217,10 @@ def test_apply_action(env):
     env._init_odoo = mock.MagicMock(return_value=False)
     env.apply_action(["action"])
 
-    sys.modules["odoo"] = mock.MagicMock()
+    odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.release"] = odoo.release
+    odoo.release.version_info = (14, 0)
     env._init_odoo.return_value = True
 
     env.apply_action(["action"])
