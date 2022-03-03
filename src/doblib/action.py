@@ -182,6 +182,13 @@ class ActionEnvironment(env.Environment):
         if model in env:
             references = item.get("references", {})
             chunk = item.get("chunk", None)
+            truncate = item.get("truncate", False)
+
+            if not domain and truncate:
+                table = env[model]._table
+
+                env.cr.execute(f"TRUNCATE {table} CASCADE")
+                return
 
             self._replace_references(env, references, domain)
             records = env[model].with_context(active_test=False).search(domain)

@@ -158,6 +158,26 @@ def test_action_delete(env, odoo_env, module):
     assert records.unlink.call_count == 2
     assert odoo_env.cr.commit.call_count == 2
 
+    search.reset_mock()
+    odoo_env.reset_mock()
+    module.with_context.reset_mock()
+    env._action_delete(odoo_env, "test", domain, {"references": refs, "truncate": True})
+    module.with_context.assert_called_once_with(active_test=False)
+    search.assert_called_once_with(domain_resolved)
+    records.unlink.assert_called_once()
+    odoo_env.cr.commit.assert_not_called()
+
+    search.reset_mock()
+    odoo_env.reset_mock()
+    module._table.__str__.return_value = "test.module"
+    module.with_context.reset_mock()
+    env._action_delete(odoo_env, "test", [], {"references": refs, "truncate": True})
+    module.with_context.assert_not_called()
+    search.assert_not_called()
+    records.unlink.assert_not_called()
+    odoo_env.cr.commit.assert_not_called()
+    odoo_env.cr.execute.assert_called_once_with("TRUNCATE test.module CASCADE")
+
 
 def test_action_update(env, odoo_env, module):
     env._apply = mock.MagicMock()
