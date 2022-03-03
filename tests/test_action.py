@@ -130,11 +130,11 @@ def test_action_delete(env, odoo_env, module):
     records.__len__.return_value = 2
     records.__getitem__.return_value = records
 
-    env._action_delete(odoo_env, "unknown", domain, {}, 1000)
+    env._action_delete(odoo_env, "unknown", domain, {})
     module.with_context.assert_not_called()
     search.assert_not_called()
 
-    env._action_delete(odoo_env, "test", domain, {}, 1000)
+    env._action_delete(odoo_env, "test", domain, {"chunk": 1000})
     module.with_context.assert_called_once_with(active_test=False)
     search.assert_called_once_with(domain)
     records.unlink.assert_called_once()
@@ -143,16 +143,16 @@ def test_action_delete(env, odoo_env, module):
     search.reset_mock()
     odoo_env.reset_mock()
     module.with_context.reset_mock()
-    env._action_delete(odoo_env, "test", domain, refs, 1000)
+    env._action_delete(odoo_env, "test", domain, {"references": refs})
     module.with_context.assert_called_once_with(active_test=False)
     search.assert_called_once_with(domain_resolved)
     records.unlink.assert_called_once()
-    odoo_env.cr.commit.assert_called_once()
+    odoo_env.cr.commit.assert_not_called()
 
     search.reset_mock()
     odoo_env.reset_mock()
     module.with_context.reset_mock()
-    env._action_delete(odoo_env, "test", domain, refs, 1)
+    env._action_delete(odoo_env, "test", domain, {"references": refs, "chunk": 1})
     module.with_context.assert_called_once_with(active_test=False)
     search.assert_called_once_with(domain_resolved)
     assert records.unlink.call_count == 2
@@ -163,7 +163,7 @@ def test_action_update(env, odoo_env, module):
     env._apply = mock.MagicMock()
     search = module.with_context.return_value.search
 
-    env._action_update(odoo_env, "test", [], {}, {}, 1000)
+    env._action_update(odoo_env, "test", [], {})
     module.with_context.assert_not_called()
     search.assert_not_called()
 
@@ -173,14 +173,16 @@ def test_action_update(env, odoo_env, module):
     records.__bool__.return_value = True
     records.__getitem__.return_value = records
 
-    env._action_update(odoo_env, "test", [], {}, {"test": 42, "unknown": 42}, 1000)
+    env._action_update(
+        odoo_env, "test", [], {"values": {"test": 42, "unknown": 42}, "chunk": 1000}
+    )
     records.write.assert_called_once_with({"test": 42})
     odoo_env.cr.commit.assert_called_once()
 
     records.__iter__.return_value = [records]
     records.write.reset_mock()
     odoo_env.reset_mock()
-    env._action_update(odoo_env, "test", [], {}, {"test": {}}, 1000)
+    env._action_update(odoo_env, "test", [], {"values": {"test": {}}, "chunk": 1000})
     records.write.assert_called_once_with({"test": env._apply.return_value})
     odoo_env.cr.commit.assert_not_called()
 
@@ -188,15 +190,22 @@ def test_action_update(env, odoo_env, module):
     records.write.reset_mock()
     odoo_env.reset_mock()
     refs = {"$value": "reference"}
-    env._action_update(odoo_env, "test", [], refs, {"test": "$value"}, 1000)
+    env._action_update(
+        odoo_env, "test", [], {"references": refs, "values": {"test": "$value"}}
+    )
     records.write.assert_called_once_with({"test": 5})
-    odoo_env.cr.commit.assert_called_once()
+    odoo_env.cr.commit.assert_not_called()
 
     records.__iter__.return_value = [records]
     records.write.reset_mock()
     odoo_env.reset_mock()
     refs = {"$value": "reference"}
-    env._action_update(odoo_env, "test", [], refs, {"test": "$value"}, 1)
+    env._action_update(
+        odoo_env,
+        "test",
+        [],
+        {"references": refs, "values": {"test": "$value"}, "chunk": 1},
+    )
     records.write.assert_called_with({"test": 5})
     assert records.write.call_count == 2
     assert odoo_env.cr.commit.call_count == 2
@@ -205,7 +214,7 @@ def test_action_update(env, odoo_env, module):
 def test_action_insert(env, odoo_env, module):
     create = module.with_context.return_value.create
 
-    env._action_insert(odoo_env, "test", [], {}, {})
+    env._action_insert(odoo_env, "test", [], {})
     create.assert_not_called()
     odoo_env.ref.assert_not_called()
 
@@ -213,8 +222,14 @@ def test_action_insert(env, odoo_env, module):
         odoo_env,
         "wrong.model",
         [["name", "=", "test"]],
-        {"$value": "reference"},
-        {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
+        {
+            "references": {"$value": "reference"},
+            "values": {
+                "name": "test",
+                "test": "$value",
+                "list": [{"other_test": "$value"}],
+            },
+        },
     )
     create.assert_not_called()
     odoo_env.ref.assert_not_called()
@@ -223,8 +238,14 @@ def test_action_insert(env, odoo_env, module):
         odoo_env,
         "test",
         [["name", "=", "test"]],
-        {"$value": "reference"},
-        {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
+        {
+            "references": {"$value": "reference"},
+            "values": {
+                "name": "test",
+                "test": "$value",
+                "list": [{"other_test": "$value"}],
+            },
+        },
     )
     create.assert_called_once_with(
         {"name": "test", "test": 5, "list": [{"other_test": 5}]},
@@ -235,8 +256,14 @@ def test_action_insert(env, odoo_env, module):
         odoo_env,
         "test",
         [["name", "=", "test"]],
-        {"$value": "reference"},
-        {"name": "test", "test": "$value", "list": [{"other_test": "$value"}]},
+        {
+            "references": {"$value": "reference"},
+            "values": {
+                "name": "test",
+                "test": "$value",
+                "list": [{"other_test": "$value"}],
+            },
+        },
     )
     create.assert_called_once_with(
         {"name": "test", "test": 5, "list": [{"other_test": 5}]},
