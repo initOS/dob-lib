@@ -177,16 +177,18 @@ class ActionEnvironment(env.Environment):
             else:
                 self._replace_recursively(value[index], replace_dict)
 
-    def _action_delete(self, env, model, domain, references):
+    def _action_delete(self, env, model, domain, references, chunk):
         """ Runs the delete action """
         if model in env:
             self._replace_references(env, references, domain)
             records = env[model].with_context(active_test=False).search(domain)
 
             if records:
-                records.unlink()
+                for i in range(0, len(records), chunk):
+                    records[i : i + chunk].unlink()
+                    env.cr.commit()
 
-    def _action_update(self, env, model, domain, references, values):
+    def _action_update(self, env, model, domain, references, values, chunk):
         """ Runs the update action """
         if not values or model not in env:
             return
@@ -211,15 +213,24 @@ class ActionEnvironment(env.Environment):
 
         # Handle the constant values
         if const:
-            records.write(const)
+            for i in range(0, len(records), chunk):
+                records[i : i + chunk].write(const)
+                env.cr.commit()
 
         # Handle the dynamic values
         if dynamic:
+            counter = 0
             for rec in records:
                 vals = {}
                 for name, apply_act in dynamic.items():
                     vals[name] = self._apply(rec, name, **apply_act)
                 rec.write(vals)
+
+                counter += 1
+
+                if counter > chunk:
+                    counter = 0
+                    env.cr.commit()
 
     def _action_insert(self, env, model, domain, references, values):
         if not domain or not values or model not in env or env[model].search(domain):
@@ -265,11 +276,14 @@ class ActionEnvironment(env.Environment):
 
                     act = item.get("action", "update")
                     references = item.get("references", {})
+                    chunk = item.get("chunk", 1000)
                     if act == "update":
                         values = item.get("values", {})
-                        self._action_update(env, model, domain, references, values)
+                        self._action_update(
+                            env, model, domain, references, values, chunk
+                        )
                     elif act == "delete":
-                        self._action_delete(env, model, domain, references)
+                        self._action_delete(env, model, domain, references, chunk)
                     elif act == "insert":
                         values = item.get("values", {})
 
