@@ -120,7 +120,8 @@ def test_date(env):
         randint.assert_called_once()
 
 
-def test_action_delete(env, odoo_env, module):
+@mock.patch("doblib.utils.warn")
+def test_action_delete(call_mock, env, odoo_env, module):
     domain = [["abc", "=", 42], ["def", "=", "$value"]]
     refs = {"$value": "reference"}
     domain_resolved = [["abc", "=", 42], ["def", "=", 5]]
@@ -157,6 +158,7 @@ def test_action_delete(env, odoo_env, module):
     search.assert_called_once_with(domain_resolved)
     assert records.unlink.call_count == 2
     assert odoo_env.cr.commit.call_count == 2
+    call_mock.assert_not_called()
 
     search.reset_mock()
     odoo_env.reset_mock()
@@ -166,6 +168,9 @@ def test_action_delete(env, odoo_env, module):
     search.assert_called_once_with(domain_resolved)
     records.unlink.assert_called_once()
     odoo_env.cr.commit.assert_not_called()
+    call_mock.assert_called_once_with(
+        "Setting a domain is not possible with truncate. Falling back"
+    )
 
     search.reset_mock()
     odoo_env.reset_mock()

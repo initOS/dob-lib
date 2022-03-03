@@ -184,6 +184,11 @@ class ActionEnvironment(env.Environment):
             chunk = item.get("chunk", None)
             truncate = item.get("truncate", False)
 
+            if domain and truncate:
+                utils.warn(
+                    "Setting a domain is not possible with truncate. Falling back"
+                )
+
             if not domain and truncate:
                 table = env[model]._table
 
