@@ -253,7 +253,7 @@ class ActionEnvironment(env.Environment):
 
                 counter += 1
 
-                if chunk and counter > chunk:
+                if chunk and counter >= chunk:
                     counter = 0
                     env.cr.commit()
 
