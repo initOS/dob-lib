@@ -177,19 +177,43 @@ class ActionEnvironment(env.Environment):
             else:
                 self._replace_recursively(value[index], replace_dict)
 
-    def _action_delete(self, env, model, domain, references):
+    def _action_delete(self, env, model, domain, item):
         """ Runs the delete action """
         if model in env:
+            references = item.get("references", {})
+            chunk = item.get("chunk", None)
+            truncate = item.get("truncate", False)
+
+            if domain and truncate:
+                utils.warn(
+                    "Setting a domain is not possible with truncate. Falling back"
+                )
+
+            elif not domain and truncate:
+                table = env[model]._table
+
+                env.cr.execute(f"TRUNCATE {table} CASCADE")
+                return
+
             self._replace_references(env, references, domain)
             records = env[model].with_context(active_test=False).search(domain)
 
             if records:
-                records.unlink()
+                if chunk:
+                    for i in range(0, len(records), chunk):
+                        records[i : i + chunk].unlink()
+                        env.cr.commit()
+                else:
+                    records.unlink()
 
-    def _action_update(self, env, model, domain, references, values):
+    def _action_update(self, env, model, domain, item):
         """ Runs the update action """
+        values = item.get("values", {})
         if not values or model not in env:
             return
+
+        references = item.get("references", {})
+        chunk = item.get("chunk", None)
 
         self._replace_references(env, references, domain)
         self._replace_references(env, references, values)
@@ -211,19 +235,34 @@ class ActionEnvironment(env.Environment):
 
         # Handle the constant values
         if const:
-            records.write(const)
+            if chunk:
+                for i in range(0, len(records), chunk):
+                    records[i : i + chunk].write(const)
+                    env.cr.commit()
+            else:
+                records.write(const)
 
         # Handle the dynamic values
         if dynamic:
+            counter = 0
             for rec in records:
                 vals = {}
                 for name, apply_act in dynamic.items():
                     vals[name] = self._apply(rec, name, **apply_act)
                 rec.write(vals)
 
-    def _action_insert(self, env, model, domain, references, values):
+                counter += 1
+
+                if chunk and counter >= chunk:
+                    counter = 0
+                    env.cr.commit()
+
+    def _action_insert(self, env, model, domain, item):
+        values = item.get("values", {})
         if not domain or not values or model not in env or env[model].search(domain):
             return
+
+        references = item.get("references", {})
 
         self._replace_references(env, references, domain)
         self._replace_references(env, references, values)
@@ -264,15 +303,11 @@ class ActionEnvironment(env.Environment):
                         continue
 
                     act = item.get("action", "update")
-                    references = item.get("references", {})
                     if act == "update":
-                        values = item.get("values", {})
-                        self._action_update(env, model, domain, references, values)
+                        self._action_update(env, model, domain, item)
                     elif act == "delete":
-                        self._action_delete(env, model, domain, references)
+                        self._action_delete(env, model, domain, item)
                     elif act == "insert":
-                        values = item.get("values", {})
-
-                        self._action_insert(env, model, domain, references, values)
+                        self._action_insert(env, model, domain, item)
                     else:
                         utils.error(f"Undefined action {act}")
