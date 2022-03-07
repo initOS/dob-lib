@@ -189,7 +189,7 @@ class ActionEnvironment(env.Environment):
                     "Setting a domain is not possible with truncate. Falling back"
                 )
 
-            if not domain and truncate:
+            elif not domain and truncate:
                 table = env[model]._table
 
                 env.cr.execute(f"TRUNCATE {table} CASCADE")

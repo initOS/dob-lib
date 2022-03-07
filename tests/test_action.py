@@ -174,14 +174,14 @@ def test_action_delete(call_mock, env, odoo_env, module):
 
     search.reset_mock()
     odoo_env.reset_mock()
-    module._table.__str__.return_value = "test.module"
+    module._table.__str__.return_value = "test_model"
     module.with_context.reset_mock()
     env._action_delete(odoo_env, "test", [], {"references": refs, "truncate": True})
     module.with_context.assert_not_called()
     search.assert_not_called()
     records.unlink.assert_not_called()
     odoo_env.cr.commit.assert_not_called()
-    odoo_env.cr.execute.assert_called_once_with("TRUNCATE test.module CASCADE")
+    odoo_env.cr.execute.assert_called_once_with("TRUNCATE test_model CASCADE")
 
 
 def test_action_update(env, odoo_env, module):
@@ -193,7 +193,7 @@ def test_action_update(env, odoo_env, module):
     search.assert_not_called()
 
     records = search.return_value
-    records._fields = {"test": "integer"}
+    records._fields = {"test": "integer", "const": "integer"}
     records.__len__.return_value = 2
     records.__bool__.return_value = True
     records.__getitem__.return_value = records
@@ -221,19 +221,18 @@ def test_action_update(env, odoo_env, module):
     records.write.assert_called_once_with({"test": 5})
     odoo_env.cr.commit.assert_not_called()
 
-    records.__iter__.return_value = [records]
+    records.__iter__.return_value = [records, records]
     records.write.reset_mock()
     odoo_env.reset_mock()
-    refs = {"$value": "reference"}
     env._action_update(
         odoo_env,
         "test",
         [],
-        {"references": refs, "values": {"test": "$value"}, "chunk": 1},
+        {"values": {"test": {"lower": 5, "upper": 5}, "const": 2}, "chunk": 1},
     )
-    records.write.assert_called_with({"test": 5})
-    assert records.write.call_count == 2
-    assert odoo_env.cr.commit.call_count == 2
+    # For each record (2) const and dynamic commit
+    assert records.write.call_count == 4
+    assert odoo_env.cr.commit.call_count == 4
 
 
 def test_action_insert(env, odoo_env, module):
