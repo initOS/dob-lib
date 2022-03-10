@@ -59,6 +59,8 @@ actions:
       action: delete
       model: unknown
       test: 23
+      context:
+        disable_feature: 42
     action_unknown:
       action: unknown
       model: unknown
