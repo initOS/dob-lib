@@ -302,12 +302,16 @@ class ActionEnvironment(env.Environment):
                         utils.error("Domain must be list")
                         continue
 
+                    ctx = env.context.copy()
+                    ctx.update(item.get("context") or {})
+                    action_env = odoo.api.Environment(env.cr, env.uid, ctx)
+
                     act = item.get("action", "update")
                     if act == "update":
-                        self._action_update(env, model, domain, item)
+                        self._action_update(action_env, model, domain, item)
                     elif act == "delete":
-                        self._action_delete(env, model, domain, item)
+                        self._action_delete(action_env, model, domain, item)
                     elif act == "insert":
-                        self._action_insert(env, model, domain, item)
+                        self._action_insert(action_env, model, domain, item)
                     else:
                         utils.error(f"Undefined action {act}")
