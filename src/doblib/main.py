@@ -2,6 +2,7 @@
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
+import logging
 import sys
 
 from . import utils
@@ -12,6 +13,14 @@ from .env import Environment
 from .freeze import FreezeEnvironment
 from .module import ModuleEnvironment
 from .run import RunEnvironment
+
+LOG_LEVELS = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARN,
+    "error": logging.ERROR,
+    "critical": logging.CRITICAL,
+}
 
 
 def load_arguments(args):
@@ -52,6 +61,13 @@ def load_arguments(args):
         default=utils.get_config_file(),
         help="Configuration file to use. Default: %(default)s",
     )
+    base.add_argument(
+        "--logging",
+        action="store",
+        choices=list(LOG_LEVELS.keys()),
+        default=None,
+        help="Logging level. Default: no logging at all",
+    )
     return parser.parse_known_args(args)
 
 
@@ -62,6 +78,13 @@ def main(args=None):
     show_help = "-h" in args or "--help" in args
     args = [x for x in args if x not in ("-h", "--help")]
     args, left = load_arguments(args)
+
+    if args.logging:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=LOG_LEVELS[args.logging],
+        )
 
     if show_help:
         left.append("--help")
