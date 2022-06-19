@@ -21,7 +21,12 @@ def aggregate_repo(repo, args, sem, err_queue):
     try:
         if not match_dir(repo.cwd, args.dirmatch):
             return
-        repo.aggregate()
+        if args.mode == "show-all-prs":
+            repo.show_all_prs()
+        elif args.mode == "show-closed-prs":
+            repo.show_closed_prs()
+        else:  # args.mode == "aggregate"
+            repo.aggregate()
     except Exception:
         err_queue.put_nowait(sys.exc_info())
     finally:
@@ -30,6 +35,19 @@ def aggregate_repo(repo, args, sem, err_queue):
 
 def load_init_arguments(args):
     parser = utils.default_parser("init")
+    parser.add_argument(
+        "mode",
+        choices=["aggregate", "show-all-prs", "show-closed-prs"],
+        nargs="?",
+        default="aggregate",
+        help="aggregate: run the aggregation process (the default if omitted)."
+        "\n"
+        "show-all-prs: show GitHub pull requests in merge sections. Such "
+        "pull requests are identified as having a github.com remote and "
+        "a refs/pull/NNN/head ref in the merge section."
+        "\n"
+        "show-closed-prs: show pull requests that are not open anymore.",
+    )
     parser.add_argument(
         "--no-config",
         dest="config",
