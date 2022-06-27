@@ -2,8 +2,11 @@
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
+import logging
 import os
 from subprocess import PIPE, Popen
+
+_logger = logging.getLogger(__name__)
 
 
 def get_config_file():
@@ -31,17 +34,17 @@ def call(*cmd, cwd=None, pipe=True):
 
 def info(msg, *args):
     """ Output a green colored info message """
-    print(f"\x1b[32m{msg % args}\x1b[0m")
+    _logger.info(f"\x1b[32m{msg % args}\x1b[0m")
 
 
 def warn(msg, *args):
     """ Output a yellow colored warning message """
-    print(f"\x1b[33m{msg % args}\x1b[0m")
+    _logger.warning(f"\x1b[33m{msg % args}\x1b[0m")
 
 
 def error(msg, *args):
     """ Output a red colored error """
-    print(f"\x1b[31m{msg % args}\x1b[0m")
+    _logger.error(f"\x1b[31m{msg % args}\x1b[0m")
 
 
 def default_parser(command):

@@ -20,6 +20,7 @@ LOG_LEVELS = {
     "warning": logging.WARN,
     "error": logging.ERROR,
     "critical": logging.CRITICAL,
+    "off": None,
 }
 
 
@@ -65,8 +66,8 @@ def load_arguments(args):
         "--logging",
         action="store",
         choices=list(LOG_LEVELS.keys()),
-        default=None,
-        help="Logging level. Default: no logging at all",
+        default="info",
+        help="Logging level. Default: %(default)s",
     )
     return parser.parse_known_args(args)
 
@@ -79,11 +80,12 @@ def main(args=None):
     args = [x for x in args if x not in ("-h", "--help")]
     args, left = load_arguments(args)
 
-    if args.logging:
+    log_level = LOG_LEVELS.get(args.logging)
+    if log_level:
         logging.basicConfig(
             format="%(asctime)s %(levelname)s: %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
-            level=LOG_LEVELS[args.logging],
+            level=log_level,
         )
 
     if show_help:
