@@ -16,16 +16,17 @@ from git_aggregator.utils import ThreadNameKeeper
 from . import base, env, utils
 
 
-def aggregate_repo(repo, args, sem, err_queue):
+def aggregate_repo(repo, args, sem, err_queue, mode=None):
     """ Aggregate one repo according to the args """
     try:
         if not match_dir(repo.cwd, args.dirmatch):
             return
-        if args.mode == "show-all-prs":
+
+        if mode == "show-all-prs":
             repo.show_all_prs()
-        elif args.mode == "show-closed-prs":
+        elif mode == "show-closed-prs":
             repo.show_closed_prs()
-        else:  # args.mode == "aggregate"
+        else:
             repo.aggregate()
     except Exception:
         err_queue.put_nowait(sys.exc_info())
@@ -35,19 +36,6 @@ def aggregate_repo(repo, args, sem, err_queue):
 
 def load_init_arguments(args):
     parser = utils.default_parser("init")
-    parser.add_argument(
-        "mode",
-        choices=["aggregate", "show-all-prs", "show-closed-prs"],
-        nargs="?",
-        default="aggregate",
-        help="aggregate: run the aggregation process (the default if omitted)."
-        "\n"
-        "show-all-prs: show GitHub pull requests in merge sections. Such "
-        "pull requests are identified as having a github.com remote and "
-        "a refs/pull/NNN/head ref in the merge section."
-        "\n"
-        "show-closed-prs: show pull requests that are not open anymore.",
-    )
     parser.add_argument(
         "--no-config",
         dest="config",
@@ -81,10 +69,38 @@ def load_init_arguments(args):
     return parser.parse_known_args(args)
 
 
-class BootstrapEnvironment(env.Environment):
+def load_aggregate_arguments(args):
+    parser = utils.default_parser("aggregate")
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        default=False,
+        help="Force the bootstrapping of repositories by stashing",
+    )
+    parser.add_argument(
+        "-d",
+        "--dirmatch",
+        dest="dirmatch",
+        type=str,
+        nargs="?",
+        help="Only bootstrap repositories with a matching glob",
+    )
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        dest="jobs",
+        default=cpu_count(),
+        type=int,
+        help="Number of jobs used for the bootstrapping. Default %(default)s",
+    )
+    return parser.parse_known_args(args)
+
+
+class AggregateEnvironment(env.Environment):
     """ Class to bootstrap the environment """
 
-    def _bootstrap(self, args):
+    def _aggregator(self, args, mode=None):
         """ Bootstrap the git repositories using git aggregator """
 
         # Mostly adapted from the git aggregator main module with integration
@@ -110,7 +126,7 @@ class BootstrapEnvironment(env.Environment):
             if jobs > 1:
                 t = threading.Thread(
                     target=aggregate_repo,
-                    args=(r, args, sem, err_queue),
+                    args=(r, args, sem, err_queue, mode),
                 )
                 t.daemon = True
                 t.name = tname
@@ -119,7 +135,7 @@ class BootstrapEnvironment(env.Environment):
             else:
                 with ThreadNameKeeper():
                     threading.current_thread().name = tname
-                    aggregate_repo(r, args, sem, err_queue)
+                    aggregate_repo(r, args, sem, err_queue, mode)
 
         for t in threads:
             t.join()
@@ -134,11 +150,16 @@ class BootstrapEnvironment(env.Environment):
             return 1
 
     def init(self, args=None):
-        """ Initialize the environment """
+        """ Initialize the environment using the git-aggregator"""
         args, _ = load_init_arguments(args or [])
 
         if args.config:
             self.generate_config()
 
         utils.info("Bootstrapping repositories")
-        return self._bootstrap(args)
+        return self._aggregator(args)
+
+    def aggregate(self, mode=None, args=None):
+        """ Run additional features of the git-aggregator """
+        args, _ = load_aggregate_arguments(args or [])
+        return self._aggregator(args, mode=mode)

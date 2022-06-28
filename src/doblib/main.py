@@ -7,7 +7,7 @@ import sys
 
 from . import utils
 from .action import ActionEnvironment
-from .bootstrap import BootstrapEnvironment
+from .aggregate import AggregateEnvironment
 from .ci import CI, CIEnvironment
 from .env import Environment
 from .freeze import FreezeEnvironment
@@ -43,6 +43,8 @@ def load_arguments(args):
         "test",
         "u",
         "update",
+        "show-all-prs",
+        "show-closed-prs",
     )
 
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -52,8 +54,19 @@ def load_arguments(args):
         metavar="command",
         nargs="?",
         help=f"Command to use. Possible choices: "
-        f"a(ction), c(onfig), f(reeze), i(nit), r(un), s(hell), t(est), u(pdate), "
-        f"{', '.join(CI)}",
+        f"a(ction): Execute pre-defined actions on the database\n"
+        f"c(onfig): Output the aggregated configuration or parts of it\n"
+        f"f(reeze): Freeze the packages and repositories\n"
+        f"i(nit): Initialize the repositories\n"
+        f"r(un): Run the Odoo server\n"
+        f"s(hell): Enter the interactive python shell\n"
+        "t(est): Execute the unittests\n"
+        f"u(pdate): Run the update and migration process\n"
+        f"{', '.join(CI)}: Run the specific CI tool\n"
+        "show-all-prs: show GitHub pull requests in merge sections. Such "
+        "pull requests are identified as having a github.com remote and "
+        "a refs/pull/NNN/head ref in the merge section\n"
+        "show-closed-prs: show pull requests that are not open anymore",
         choices=sorted(choices + CI),
     )
     base.add_argument(
@@ -99,7 +112,7 @@ def main(args=None):
         sys.exit(FreezeEnvironment(args.cfg).freeze(left))
     elif args.command in ("i", "init"):
         # Bootstrap the environment
-        sys.exit(BootstrapEnvironment(args.cfg).init(left))
+        sys.exit(AggregateEnvironment(args.cfg).init(left))
     elif args.command in ("s", "shell"):
         # Start a shell in the environment
         sys.exit(RunEnvironment(args.cfg).shell(left))
@@ -118,6 +131,8 @@ def main(args=None):
     elif args.command in ("a", "action"):
         # Run actions in the environment
         sys.exit(ActionEnvironment(args.cfg).apply_action(left))
+    elif args.command in ("show-all-prs", "show-closed-prs"):
+        sys.exit(AggregateEnvironment(args.cfg).aggregate(args.command, left))
     elif show_help:
         load_arguments(["--help"])
     else:

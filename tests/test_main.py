@@ -24,7 +24,7 @@ def test_config(config_mock, exit_mock):
             mock.assert_called_once_with(fp.name)
             mock.return_value.freeze.assert_called_once_with(["additional"])
 
-        with patch("doblib.main.BootstrapEnvironment") as mock:
+        with patch("doblib.main.AggregateEnvironment") as mock:
             main(["i", "additional"])
             mock.assert_called_once_with(fp.name)
             mock.return_value.init.assert_called_once_with(["additional"])
@@ -69,7 +69,21 @@ def test_config(config_mock, exit_mock):
             mock.assert_called_once_with(fp.name)
             mock.return_value.apply_action.assert_called_once_with(["additional"])
 
-        assert exit_mock.call_count == 10
+        with patch("doblib.main.AggregateEnvironment") as mock:
+            main(["show-all-prs", "additional"])
+            mock.assert_called_once_with(fp.name)
+            mock.return_value.aggregate.assert_called_once_with(
+                "show-all-prs", ["additional"]
+            )
+
+            mock.reset_mock()
+            main(["show-closed-prs", "additional"])
+            mock.assert_called_once_with(fp.name)
+            mock.return_value.aggregate.assert_called_once_with(
+                "show-closed-prs", ["additional"]
+            )
+
+        assert exit_mock.call_count == 12
 
 
 @patch("doblib.main.load_arguments")
