@@ -13,6 +13,7 @@ from .env import Environment
 from .freeze import FreezeEnvironment
 from .module import ModuleEnvironment
 from .run import RunEnvironment
+from .utils import config_logger, create_handler
 
 LOG_LEVELS = {
     "debug": logging.DEBUG,
@@ -95,11 +96,13 @@ def main(args=None):
 
     log_level = LOG_LEVELS.get(args.logging)
     if log_level:
-        logging.basicConfig(
-            format="%(asctime)s %(levelname)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            level=log_level,
-        )
+        handler = create_handler()
+        for logger_name in [
+            "doblib.utils",
+            "git_aggregator.repo",
+        ]:
+            logger = logging.getLogger(logger_name)
+            config_logger(logger, handler=handler, log_level=log_level)
 
     if show_help:
         left.append("--help")

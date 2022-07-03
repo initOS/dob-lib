@@ -93,6 +93,29 @@ def raise_keyboard_interrupt(*a):
     raise KeyboardInterrupt()
 
 
+def create_handler():
+    """Create a handler for loggers"""
+    formatter = logging.Formatter(
+        # fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        # datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    return handler
+
+
+def config_logger(logger, handler=None, log_level=logging.INFO):
+    """Configure a logger"""
+    if logger.hasHandlers():
+        return False
+    if not handler:
+        handler = create_handler()
+    logger.addHandler(handler)
+    logger.setLevel(log_level)
+    logger.propagate = False
+    return True
+
+
 class Version:
     """Class to read and and compare versions. Instances are getting
     passed to the migration scripts"""
