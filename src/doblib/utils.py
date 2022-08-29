@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 
 
 def get_config_file():
-    """ Favor a odoo.local.yaml if exists """
+    """Favor a odoo.local.yaml if exists"""
     for file in ["odoo.local.yaml", "odoo.project.yaml"]:
         if os.path.isfile(file):
             return file
@@ -19,7 +19,7 @@ def get_config_file():
 
 
 def call(*cmd, cwd=None, pipe=True):
-    """ Call a subprocess and return the stdout """
+    """Call a subprocess and return the stdout"""
     proc = Popen(
         cmd,
         cwd=cwd,
@@ -33,22 +33,22 @@ def call(*cmd, cwd=None, pipe=True):
 
 
 def info(msg, *args):
-    """ Output a green colored info message """
+    """Output a green colored info message"""
     _logger.info(f"\x1b[32m{msg % args}\x1b[0m")
 
 
 def warn(msg, *args):
-    """ Output a yellow colored warning message """
+    """Output a yellow colored warning message"""
     _logger.warning(f"\x1b[33m{msg % args}\x1b[0m")
 
 
 def error(msg, *args):
-    """ Output a red colored error """
+    """Output a red colored error"""
     _logger.error(f"\x1b[31m{msg % args}\x1b[0m")
 
 
 def default_parser(command):
-    """ Return the common parser options """
+    """Return the common parser options"""
     parser = argparse.ArgumentParser(
         usage=f"%(prog)s {command} [options]",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -63,7 +63,7 @@ def default_parser(command):
 
 
 def merge(a, b, *, replace=None):
-    """ Merges dicts and lists from the configuration structure """
+    """Merges dicts and lists from the configuration structure"""
     if isinstance(a, dict) and isinstance(b, dict):
         if not replace:
             replace = set()
@@ -93,27 +93,21 @@ def raise_keyboard_interrupt(*a):
     raise KeyboardInterrupt()
 
 
-def create_handler():
-    """Create a handler for loggers"""
+def config_logger(log_level=logging.INFO):
+    """Configure the loggers for doblib and git_aggregator fully embedding the logs
+    of the wrapper into the normal log stream"""
     formatter = logging.Formatter(
-        # fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        # datefmt="%Y-%m-%d %H:%M:%S",
+        fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-    return handler
 
-
-def config_logger(logger, handler=None, log_level=logging.INFO):
-    """Configure a logger"""
-    if logger.hasHandlers():
-        return False
-    if not handler:
-        handler = create_handler()
-    logger.addHandler(handler)
-    logger.setLevel(log_level)
-    logger.propagate = False
-    return True
+    for name, logger in logging.root.manager.loggerDict.items():
+        if any(name.startswith(f"{x}.") for x in ("doblib.", "git_aggregator.")):
+            logger.propagate = False
+            logger.addHandler(handler)
+            logger.setLevel(log_level)
 
 
 class Version:

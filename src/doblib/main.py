@@ -13,7 +13,7 @@ from .env import Environment
 from .freeze import FreezeEnvironment
 from .module import ModuleEnvironment
 from .run import RunEnvironment
-from .utils import config_logger, create_handler
+from .utils import config_logger
 
 LOG_LEVELS = {
     "debug": logging.DEBUG,
@@ -26,7 +26,7 @@ LOG_LEVELS = {
 
 
 def load_arguments(args):
-    """ Parse the command line options """
+    """Parse the command line options"""
     choices = (
         "a",
         "action",
@@ -96,13 +96,7 @@ def main(args=None):
 
     log_level = LOG_LEVELS.get(args.logging)
     if log_level:
-        handler = create_handler()
-        for logger_name in [
-            "doblib.utils",
-            "git_aggregator.repo",
-        ]:
-            logger = logging.getLogger(logger_name)
-            config_logger(logger, handler=handler, log_level=log_level)
+        config_logger(log_level)
 
     if show_help:
         left.append("--help")
