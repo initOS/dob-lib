@@ -79,7 +79,7 @@ def load_arguments(args):
     base.add_argument(
         "--logging",
         action="store",
-        choices=list(LOG_LEVELS.keys()),
+        choices=list(LOG_LEVELS),
         default="info",
         help="Logging level. Default: %(default)s",
     )
@@ -94,7 +94,7 @@ def main(args=None):
     args = [x for x in args if x not in ("-h", "--help")]
     args, left = load_arguments(args)
 
-    log_level = LOG_LEVELS.get(args.logging)
+    log_level = LOG_LEVELS.get(args.logging, logging.INFO)
     if log_level:
         config_logger(log_level)
 
