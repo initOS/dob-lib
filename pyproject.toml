@@ -4,21 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py36', 'py37', 'py38', 'py39', 'py310']
 include = '(\.pyi?$|src|tests)'
 
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = clean,py38,report
+envlist = clean,py3,report
 
 [testenv]
 deps = pytest
        pytest-cov
        coverage
 depends:
-    py38: clean
-    report: py38
+    py3: clean
+    report: py3
 commands = pytest --cov {envsitepackagesdir}/doblib --cov-append
 setenv =
     DISABLE_PYTEST_ODOO = 1
