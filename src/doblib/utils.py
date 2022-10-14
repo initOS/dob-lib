@@ -104,7 +104,7 @@ def config_logger(log_level=logging.INFO):
     handler.setFormatter(formatter)
 
     for name, logger in logging.root.manager.loggerDict.items():
-        if any(name.startswith(f"{x}.") for x in ("doblib.", "git_aggregator.")):
+        if any(name.startswith(x) for x in ("doblib.", "git_aggregator.")):
             logger.propagate = False
             logger.addHandler(handler)
             logger.setLevel(log_level)
