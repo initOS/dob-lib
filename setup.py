@@ -39,7 +39,7 @@ setup(
     package_dir={"": "src"},
     include_package_data=True,
     install_requires=deps,
-    entry_points={"console_scripts": ["dob = doblib.main:main"]},
+    entry_points={"console_scripts": ["dob = doblib.__main__:main"]},
     classifiers=[
         "Environment :: Console",
         "License :: OSI Approved :: Apache Software License",
