@@ -59,7 +59,6 @@ def load_arguments(args):
         f"a(ction): Execute pre-defined actions on the database\n"
         f"c(onfig): Output the aggregated configuration or parts of it\n"
         f"f(reeze): Freeze the packages and repositories\n"
-        f"help: Show the help\n"
         f"i(nit): Initialize the repositories\n"
         f"r(un): Run the Odoo server\n"
         f"s(hell): Enter the interactive python shell\n"
