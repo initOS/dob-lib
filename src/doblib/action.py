@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import random
@@ -25,14 +25,46 @@ def load_action_arguments(args, actions=None):
         default=False,
         help="Run the action as a dry-run and don't commit changes",
     )
+    parser.add_argument_group(
+        "Actions",
+        "Database actions are defined under the `actions` section in the configuration "
+        "with a name. Each database action is defined as dictionary with named steps. "
+        "Each step allows the following keys:\n"
+        "\n"
+        "  `action`: .. Type of action. Either update, insert or delete with update "
+        "as default\n"
+        "  `model`: .. The Odoo model to use. Required\n"
+        "  `domain`: .. Search domain to specify specific records. Default is []\n"
+        "  `context`: .. Dictionary to update the context of the environment for the action\n"
+        "  `references`: .. Dictionary of unique identifiers to XML references of Odoo\n"
+        "  `chunk`: .. Update or delete is done in chunks of given size. "
+        "Default is 0 (no chunks)\n"
+        "  `truncate`: .. The delete action uses TRUNCATE .. CASCADE on the table instead\n"
+        "  `values`: .. Dictionary to define the new value of each field. Required\n\n"
+        "`values` can be defined as a constant value or as dictionary which allows "
+        "dynamic values. Following is possible:\n"
+        "\n"
+        "  `field`: .. A field name to copy the value from\n"
+        "  `lower`: .. The lower bounds for randomized values°\n"
+        "  `upper`: .. The upper bounds for randomized values°\n"
+        "  `prefix`: .. Prefix to add for the new value°°\n"
+        "  `suffix`: .. Suffix to add for the new value°°\n"
+        "  `length`: .. Generate a random alphanumeric value of this length°°\n"
+        "  `uuid`: .. Generate a new uuid. Supported values are 1 or 4°°\n"
+        "  `choices`: .. List of values to pick a random value°°°\n"
+        "\n"
+        "°   Only available for Integer, Float, Date or Datetime\n"
+        "°°  Only available for Char, Html, or Text\n"
+        "°°° Only available for Char, Html, Text or Selection\n",
+    )
     return parser.parse_known_args(args)
 
 
 class ActionEnvironment(env.Environment):
-    """ Class to apply actions in the environment """
+    """Class to apply actions in the environment"""
 
     def _apply(self, rec, name, **kw):
-        """ Apply an action on a field of a record """
+        """Apply an action on a field of a record"""
         field_type = rec._fields[name].type
         if field_type == "boolean":
             return self._boolean(rec, name=name, **kw)
@@ -46,6 +78,8 @@ class ActionEnvironment(env.Environment):
             return self._datetime(rec, name=name, **kw)
         if field_type in ("char", "html", "text"):
             return self._text(rec, name=name, **kw)
+        if field_type == "selection":
+            return self._selection(rec, name=name, **kw)
         raise TypeError("Field type is not supported by action handler")
 
     def _boolean(self, rec, **kw):
@@ -55,6 +89,7 @@ class ActionEnvironment(env.Environment):
         * Randomly True or False
         """
         field = kw.get("field")
+
         # Use the value of a different field
         if field:
             return bool(rec[field])
@@ -68,14 +103,15 @@ class ActionEnvironment(env.Environment):
         * Random value between `lower` and `upper`
         """
 
-        lower = kw.get("lower", None)
-        upper = kw.get("upper", None)
         field = kw.get("field", None)
+
         # Use the value of a different field
         if field:
             return rec[field]
 
         # Randomize the value
+        lower = kw.get("lower", None)
+        upper = kw.get("upper", None)
         if isinstance(lower, int) and isinstance(upper, int):
             return random.randint(lower, upper)
 
@@ -87,44 +123,71 @@ class ActionEnvironment(env.Environment):
         * Take the value from a `field` of the record
         * Random value between `lower` and `upper`
         """
-        lower = kw.get("lower", 0.0)
-        upper = kw.get("upper", 1.0)
         field = kw.get("field", None)
+
         # Use the value of a different field
         if field:
             return rec[field]
 
         # Randomize the value
+        lower = kw.get("lower", 0.0)
+        upper = kw.get("upper", 1.0)
         return random.random() * (upper - lower) + lower
 
-    def _text(self, rec, **kw):
+    def _selection(self, rec, name, **kw):
+        """Return a value for selection fields depending on the arguments
+
+        * Take the value from a `field` of the record
+        * Random value of the `choices` key
+        * Random value
+        """
+        field = kw.get("field", None)
+        # Use the value of a different field
+        if field:
+            return rec[field]
+
+        choices = kw.get("choices", None)
+        if choices and len(choices) > 0:
+            return str(random.choice(choices))
+
+        # Randomize the value
+        return random.choice(rec._fields[name].get_values(rec.env))
+
+    def _text(self, rec, name, **kw):
         """Return a value for text fields depending on the arguments
 
         * Generate a UUID if `uuid` is set. Support UUID1 and UUID4
         * Take the value from a `field` of the record. Add `prefix` and `suffix`
         * Random alphanumeric string with specific `length`. Add `prefix` and `suffix`
+        * Random value of the `choices` key. Add `prefix` and `suffix`
         * Current value of the field with `prefix` and `suffix` added
         """
-        prefix = kw.get("prefix", "")
-        suffix = kw.get("suffix", "")
-        length = kw.get("length", None)
-        field = kw.get("field", None)
-        vuuid = kw.get("uuid", None)
+
         # Support for uuid1 and uuid4
+        vuuid = kw.get("uuid", None)
         if vuuid == 1:
             return str(uuid.uuid1())
         if vuuid == 4:
             return str(uuid.uuid4())
 
         # Use the value of a different field
+        prefix = kw.get("prefix", "")
+        suffix = kw.get("suffix", "")
+        field = kw.get("field", None)
         if isinstance(field, str):
             return f"{prefix}{rec[field]}{suffix}"
 
         # Randomize the value
+        length = kw.get("length", None)
         if isinstance(length, int) and length > 0:
             return prefix + "".join(random.choices(ALNUM, k=length)) + suffix
 
-        return prefix + rec[kw["name"]] + suffix
+        # Take a random value from the choices
+        choices = kw.get("choices", None)
+        if choices and len(choices) > 0:
+            return prefix + str(random.choice(choices)) + suffix
+
+        return prefix + rec[name] + suffix
 
     def _datetime(self, rec, **kw):
         """Return a value for datetime fields depending on the arguments
@@ -132,12 +195,12 @@ class ActionEnvironment(env.Environment):
         * Take the value from a `field` of the record
         * Random value between `lower` and `upper`
         """
-        lower = kw.get("lower", datetime(1970, 1, 1))
-        upper = kw.get("upper", datetime.now())
         field = kw.get("field", None)
         if field:
             return rec[field]
 
+        lower = kw.get("lower", datetime(1970, 1, 1))
+        upper = kw.get("upper", datetime.now())
         diff = upper - lower
         return lower + timedelta(seconds=random.randint(0, diff.seconds))
 
@@ -147,12 +210,12 @@ class ActionEnvironment(env.Environment):
         * Take the value from a `field` of the record
         * Random value between `lower` and `upper`
         """
-        lower = kw.get("lower", date(1970, 1, 1))
-        upper = kw.get("upper", date.today())
         field = kw.get("field", None)
         if field:
             return rec[field]
 
+        lower = kw.get("lower", date(1970, 1, 1))
+        upper = kw.get("upper", date.today())
         return lower + timedelta(days=random.randint(0, (upper - lower).days))
 
     def _replace_references(self, env, references, values):
@@ -178,7 +241,7 @@ class ActionEnvironment(env.Environment):
                 self._replace_recursively(value[index], replace_dict)
 
     def _action_delete(self, env, model, domain, item):
-        """ Runs the delete action """
+        """Runs the delete action"""
         if model in env:
             references = item.get("references", {})
             chunk = item.get("chunk", None)
@@ -207,7 +270,7 @@ class ActionEnvironment(env.Environment):
                     records.unlink()
 
     def _action_update(self, env, model, domain, item):
-        """ Runs the update action """
+        """Runs the update action"""
         values = item.get("values", {})
         if not values or model not in env:
             return
@@ -270,7 +333,7 @@ class ActionEnvironment(env.Environment):
         env[model].with_context(active_test=False).create(values)
 
     def apply_action(self, args=None):
-        """ Apply in the configuration defined actions on the database """
+        """Apply in the configuration defined actions on the database"""
         actions = self.get("actions", default={})
         args, _ = load_action_arguments(args or [], list(actions))
 

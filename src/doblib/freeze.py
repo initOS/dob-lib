@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
@@ -48,10 +48,10 @@ def load_freeze_arguments(args):
 
 
 class FreezeEnvironment(env.Environment):
-    """ Class to freeze the system """
+    """Class to freeze the system"""
 
     def _freeze_mode(self, file, mode="ask"):
-        """ Return true if the file should be written/created """
+        """Return true if the file should be written/created"""
         if not os.path.isfile(file):
             return True
 
@@ -66,15 +66,15 @@ class FreezeEnvironment(env.Environment):
         return True
 
     def _freeze_packages(self, file, mode="ask"):
-        """ Freeze the python packages in the versions.txt """
+        """Freeze the python packages in the versions.txt"""
         if self._freeze_mode(file, mode):
             utils.info("Freezing packages")
             versions = utils.call(sys.executable, "-m", "pip", "freeze")
-            with open(file, "w+") as fp:
+            with open(file, "w+", encoding="utf-8") as fp:
                 fp.write(versions)
 
     def _freeze_repositories(self, file, mode="ask"):
-        """ Freeze the repositories """
+        """Freeze the repositories"""
 
         # Get the default merges dict from the configuration
         version = self.get(base.SECTION, "version", default="0.0")
@@ -116,11 +116,11 @@ class FreezeEnvironment(env.Environment):
         # Output the suggestion in a proper format to allow copy & paste
         if self._freeze_mode(file, mode):
             utils.info("Freezing repositories")
-            with open(file, "w+") as fp:
+            with open(file, "w+", encoding="utf-8") as fp:
                 fp.write(yaml.dump({"repos": commits}))
 
     def freeze(self, args=None):
-        """ Freeze the python packages in the versions.txt """
+        """Freeze the python packages in the versions.txt"""
         args, _ = load_freeze_arguments(args or [])
 
         if args.packages:

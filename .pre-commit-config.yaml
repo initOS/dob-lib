@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.3.0
     hooks:
       - id: black
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.9
+    rev: 3.8.3
     hooks:
       - id: flake8
         additional_dependencies: [flake8-bugbear]
@@ -19,7 +19,7 @@ repos:
           - --settings=.
 
   - repo: https://github.com/PyCQA/pylint
-    rev: pylint-2.5.3
+    rev: v2.11.1
     hooks:
       - id: pylint
         name: pylint
@@ -28,4 +28,4 @@ repos:
           - --exit-zero
         verbose: true
         additional_dependencies: &pylint_deps
-          - pylint-odoo==3.5.0
+          - pylint-odoo==6.2.0

@@ -1,9 +1,10 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
 import logging
 import os
+from fnmatch import fnmatch
 from subprocess import PIPE, Popen
 
 _logger = logging.getLogger(__name__)
@@ -20,16 +21,16 @@ def get_config_file():
 
 def call(*cmd, cwd=None, pipe=True):
     """Call a subprocess and return the stdout"""
-    proc = Popen(
+    with Popen(
         cmd,
         cwd=cwd,
         stdout=PIPE if pipe else None,
         universal_newlines=True,
-    )
-    output = proc.communicate()[0]
-    if pipe:
-        return output.strip() if output else ""
-    return proc.returncode
+    ) as proc:
+        output = proc.communicate()[0]
+        if pipe:
+            return output.strip() if output else ""
+        return proc.returncode
 
 
 def info(msg, *args):
@@ -45,6 +46,18 @@ def warn(msg, *args):
 def error(msg, *args):
     """Output a red colored error"""
     _logger.error(f"\x1b[31m{msg % args}\x1b[0m")
+
+
+def check_filters(name, whitelist=None, blacklist=None):
+    """Check the name against the whitelist and blacklist"""
+
+    if whitelist and not any(fnmatch(name, pat) for pat in whitelist):
+        return False
+
+    if blacklist and any(fnmatch(name, pat) for pat in blacklist):
+        return False
+
+    return True
 
 
 def default_parser(command):

@@ -1,11 +1,11 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
 import importlib
 import os
 import sys
-from contextlib import closing, contextmanager
+from contextlib import closing
 
 from . import base, env, utils
 
@@ -47,10 +47,10 @@ def load_update_arguments(args):
 
 
 class ModuleEnvironment(env.Environment):
-    """ Class to handle modules """
+    """Class to handle modules"""
 
     def _run_migration(self, db_name, script_name):
-        """ Run a migration script by executing the migrate function """
+        """Run a migration script by executing the migrate function"""
         path = sys.path[:]
         sys.path.append(os.getcwd())
         try:
@@ -67,8 +67,8 @@ class ModuleEnvironment(env.Environment):
             )
             script.migrate(env, version)
 
-    def get_modules(self):
-        """ Return the list of modules """
+    def _get_modules(self):
+        """Return the list of modules"""
         modes = self.get(base.SECTION, "mode", default=[])
         modes = set(modes.split(",") if isinstance(modes, str) else modes)
 
@@ -87,15 +87,15 @@ class ModuleEnvironment(env.Environment):
 
         return modules
 
-    def get_installed_modules(self, db_name):
-        """ Return the list of modules which are installed """
+    def _get_installed_modules(self, db_name):
+        """Return the list of modules which are installed"""
         with self.env(db_name, False) as env:
             domain = [("state", "=", "installed")]
             installed = env["ir.module.module"].search(domain).mapped("name")
             return set(installed).union(["base"])
 
     def install_all(self, db_name, modules):
-        """ Install all modules """
+        """Install all modules"""
         # pylint: disable=C0415,E0401
         import odoo
         from odoo.tools import config
@@ -116,37 +116,31 @@ class ModuleEnvironment(env.Environment):
             force_demo=not without_demo,
         )
 
-    def update_all(self, db_name, blacklist=None):
-        """ Update all modules """
+    def update_specific(self, db_name, whitelist=None, blacklist=None, installed=False):
+        """Update all modules"""
         # pylint: disable=C0415,E0401
         import odoo
         from odoo.tools import config
 
-        if not blacklist:
-            blacklist = []
+        whitelist = set(whitelist or [])
 
-        utils.info("Updating all modules")
-        modules = self.get_installed_modules(db_name).difference(blacklist)
-        config["init"] = {}
-        config["update"] = dict.fromkeys(modules, 1)
-        config["overwrite_existing_translations"] = True
-        odoo.modules.registry.Registry.new(db_name, update_module=True)
+        if installed:
+            utils.info("Updating all modules")
+            modules = self._get_installed_modules(db_name)
+        else:
+            utils.info("Updating listed modules")
+            modules = self._get_modules()
 
-    def update_listed(self, db_name, blacklist=None):
-        """ Update all modules """
-        # pylint: disable=C0415,E0401
-        import odoo
-        from odoo.tools import config
+        modules = (modules or whitelist).intersection(whitelist)
+        modules.difference_update(blacklist or [])
 
-        utils.info("Updating listed modules")
-        modules = self.get_modules().difference(blacklist or [])
         config["init"] = {}
         config["update"] = dict.fromkeys(modules, 1)
         config["overwrite_existing_translations"] = True
         odoo.modules.registry.Registry.new(db_name, update_module=True)
 
     def update_changed(self, db_name, blacklist=None):
-        """ Update only changed modules """
+        """Update only changed modules"""
         utils.info("Updating changed modules")
         with self.env(db_name, False) as env:
             model = env["ir.module.module"]
@@ -155,10 +149,10 @@ class ModuleEnvironment(env.Environment):
                 return
 
         utils.info("The module module_auto_update is needed. Falling back")
-        self.update_all(db_name, blacklist)
+        self.update_specific(db_name, blacklist=blacklist, installed=True)
 
     def update(self, args=None):
-        """ Install/update Odoo modules """
+        """Install/update Odoo modules"""
         args, _ = load_update_arguments(args or [])
 
         self.generate_config()
@@ -191,10 +185,10 @@ class ModuleEnvironment(env.Environment):
 
             # Get the modules to install
             if initialized:
-                uninstalled = self.get_modules()
+                uninstalled = self._get_modules()
             else:
-                installed = self.get_installed_modules(db_name)
-                modules = self.get_modules()
+                installed = self._get_installed_modules(db_name)
+                modules = self._get_modules()
                 uninstalled = modules.difference(installed)
 
             # Install all modules
@@ -206,12 +200,13 @@ class ModuleEnvironment(env.Environment):
             self._run_migration(db_name, "pre_update")
 
             # Update all modules which aren't installed before
-            if args.modules:
-                self.update_all(db_name, args.modules)
-            elif args.listed:
-                self.update_listed(db_name, uninstalled)
-            elif args.all:
-                self.update_all(db_name, uninstalled)
+            if args.all or args.listed or args.modules:
+                self.update_specific(
+                    db_name,
+                    whitelist=args.modules,
+                    blacklist=uninstalled,
+                    installed=args.all,
+                )
             else:
                 self.update_changed(db_name, uninstalled)
 

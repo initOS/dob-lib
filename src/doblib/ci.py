@@ -27,10 +27,10 @@ def load_ci_arguments(args):
 
 
 class CIEnvironment(env.Environment):
-    """ Class to run tests on the environment """
+    """Class to run tests on the environment"""
 
     def _ci_black(self, options, args, paths, ignores):
-        """ Run black """
+        """Run black"""
         cmd = [sys.executable, "-m", "black"]
 
         # Replace pattern matching with regex
@@ -58,7 +58,7 @@ class CIEnvironment(env.Environment):
         return utils.call(*cmd, *args, *paths, pipe=False)
 
     def _ci_eslint(self, options, args, paths, ignores):
-        """ Run eslint if tool is available """
+        """Run eslint if tool is available"""
         executable = shutil.which("eslint")
         if not executable:
             utils.error("eslint is not installed")
@@ -74,7 +74,7 @@ class CIEnvironment(env.Environment):
         return utils.call(*cmd, *args, *paths, pipe=False)
 
     def _ci_flake8(self, options, left, paths, ignores):
-        """ Run flake8 tests """
+        """Run flake8 tests"""
         cmd = [sys.executable, "-m", "flake8"]
         if ignores:
             cmd.append("--extend-exclude=" + ",".join(ignores))
@@ -87,7 +87,7 @@ class CIEnvironment(env.Environment):
         )
 
     def _ci_isort(self, options, args, paths, ignores):
-        """ Run isort """
+        """Run isort"""
 
         cmd = [sys.executable, "-m", "isort"]
         if not options.fix:
@@ -139,7 +139,7 @@ class CIEnvironment(env.Environment):
         return utils.call(*cmd, *args, *files, pipe=False)
 
     def _ci_pylint(self, options, args, paths, ignores):
-        """ Run pylint tests for Odoo """
+        """Run pylint tests for Odoo"""
         files = []
         for path in paths:
             files.extend(glob.glob(f"{path}/**/*.csv", recursive=True))
@@ -168,7 +168,7 @@ class CIEnvironment(env.Environment):
         return utils.call(*cmd, *args, *files, pipe=False)
 
     def ci(self, ci, args=None):
-        """ Run CI tests """
+        """Run CI tests"""
         args, left = load_ci_arguments(args or [])
 
         # Always include this script in the tests
@@ -182,7 +182,7 @@ class CIEnvironment(env.Environment):
         return 1
 
     def test(self, args=None):
-        """ Run tests """
+        """Run tests"""
         if not args:
             args = []
 

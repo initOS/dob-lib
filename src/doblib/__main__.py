@@ -34,6 +34,7 @@ def load_arguments(args):
         "config",
         "f",
         "freeze",
+        "help",
         "i",
         "init",
         "r",
@@ -61,13 +62,13 @@ def load_arguments(args):
         f"i(nit): Initialize the repositories\n"
         f"r(un): Run the Odoo server\n"
         f"s(hell): Enter the interactive python shell\n"
-        "t(est): Execute the unittests\n"
+        f"t(est): Execute the unittests\n"
         f"u(pdate): Run the update and migration process\n"
         f"{', '.join(CI)}: Run the specific CI tool\n"
-        "show-all-prs: show GitHub pull requests in merge sections. Such "
-        "pull requests are identified as having a github.com remote and "
-        "a refs/pull/NNN/head ref in the merge section\n"
-        "show-closed-prs: show pull requests that are not open anymore",
+        f"show-all-prs: show GitHub pull requests in merge sections. Such "
+        f"pull requests are identified as having a github.com remote and "
+        f"a refs/pull/NNN/head ref in the merge section\n"
+        f"show-closed-prs: show pull requests that are not open anymore",
         choices=sorted(choices + CI),
     )
     base.add_argument(

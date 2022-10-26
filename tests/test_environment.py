@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
@@ -86,17 +86,21 @@ def test_substitute_syntax(env):
 
 def test_init_odoo(env):
     # Path not exists
+    env._link_modules = mock.MagicMock()
     assert env._init_odoo() is False
+    env._link_modules.assert_not_called()
 
     with TemporaryDirectory() as dir_name:
         # Not a dir
         env.set("bootstrap", "odoo", value=f"{dir_name}/unknown")
         assert env._init_odoo() is False
+        env._link_modules.assert_not_called()
 
         env.set("bootstrap", "odoo", value=dir_name)
         assert dir_name not in sys.path
         assert env._init_odoo() == dir_name
         assert dir_name in sys.path
+        env._link_modules.assert_called_once()
 
 
 def test_env(env):
@@ -125,3 +129,28 @@ def test_env(env):
 
     cr.rollback.assert_called_once()
     cr.commit.assert_not_called()
+
+
+def test_link_modules(env):
+    with TemporaryDirectory() as dir_name:
+        os.makedirs(f"{dir_name}/abc")
+        link_path = os.path.join(base.ADDON_PATH, "abc")
+
+        repo = {}
+        env._config = {"repos": {dir_name: repo}}
+        env._link_modules()
+        assert not os.path.islink(link_path)
+
+        with open(f"{dir_name}/abc/__manifest__.py", "w+", encoding="utf-8"):
+            pass
+
+        env._link_modules()
+        assert os.path.islink(link_path)
+
+        repo["modules"] = ["abc"]
+        env._link_modules()
+        assert os.path.islink(link_path)
+
+        repo["modules"] = ["!abc"]
+        env._link_modules()
+        assert not os.path.islink(link_path)
