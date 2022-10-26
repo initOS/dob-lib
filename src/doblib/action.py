@@ -153,7 +153,7 @@ class ActionEnvironment(env.Environment):
         # Randomize the value
         return random.choice(rec._fields[name].get_values(rec.env))
 
-    def _text(self, rec, **kw):
+    def _text(self, rec, name, **kw):
         """Return a value for text fields depending on the arguments
 
         * Generate a UUID if `uuid` is set. Support UUID1 and UUID4
@@ -187,7 +187,7 @@ class ActionEnvironment(env.Environment):
         if choices and len(choices) > 0:
             return prefix + str(random.choice(choices)) + suffix
 
-        return prefix + rec[kw["name"]] + suffix
+        return prefix + rec[name] + suffix
 
     def _datetime(self, rec, **kw):
         """Return a value for datetime fields depending on the arguments
