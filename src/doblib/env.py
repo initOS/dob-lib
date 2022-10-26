@@ -159,11 +159,13 @@ class Environment:
             blacklist = {m[1:] for m in modules if m.startswith("!")}
 
             for module in os.listdir(target):
+                path = os.path.join(target, module)
+                # Check if module
+                if not os.path.isfile(os.path.join(path, "__manifest__.py")):
+                    continue
+
                 if utils.check_filters(module, whitelist, blacklist):
-                    os.symlink(
-                        os.path.join(target, module),
-                        os.path.join(base.ADDON_PATH, module),
-                    )
+                    os.symlink(path, os.path.join(base.ADDON_PATH, module))
 
     def _init_odoo(self):
         """Initialize Odoo to enable the module import"""

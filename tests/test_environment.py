@@ -139,6 +139,12 @@ def test_link_modules(env):
         repo = {}
         env._config = {"repos": {dir_name: repo}}
         env._link_modules()
+        assert not os.path.islink(link_path)
+
+        with open(f"{dir_name}/abc/__manifest__.py", "w+", encoding="utf-8"):
+            pass
+
+        env._link_modules()
         assert os.path.islink(link_path)
 
         repo["modules"] = ["abc"]
