@@ -134,7 +134,7 @@ class ActionEnvironment(env.Environment):
         upper = kw.get("upper", 1.0)
         return random.random() * (upper - lower) + lower
 
-    def _selection(self, rec, **kw):
+    def _selection(self, rec, name, **kw):
         """Return a value for selection fields depending on the arguments
 
         * Take the value from a `field` of the record
@@ -151,7 +151,7 @@ class ActionEnvironment(env.Environment):
             return str(random.choice(choices))
 
         # Randomize the value
-        return random.choice(rec._fields[field].get_values(rec.env))
+        return random.choice(rec._fields[name].get_values(rec.env))
 
     def _text(self, rec, **kw):
         """Return a value for text fields depending on the arguments
