@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
@@ -42,25 +42,25 @@ def test_run_migration(env):
 
 def test_get_modules(env):
     env.set(base.SECTION, "mode", value="prod")
-    assert env.get_modules() == {"normal"}
+    assert env._get_modules() == {"normal"}
 
     env.set(base.SECTION, "mode", value="staging")
-    assert env.get_modules() == {"normal", "staging", "dev_staging"}
+    assert env._get_modules() == {"normal", "staging", "dev_staging"}
 
     env.set(base.SECTION, "mode", value="dev")
-    assert env.get_modules() == {"normal", "dev", "dev_staging"}
+    assert env._get_modules() == {"normal", "dev", "dev_staging"}
 
     env.set(base.SECTION, "mode", value="dev,staging")
-    assert env.get_modules() == {"normal", "dev", "dev_staging", "staging"}
+    assert env._get_modules() == {"normal", "dev", "dev_staging", "staging"}
 
     env.set("modules", value=[{}])
     with pytest.raises(TypeError):
-        env.get_modules()
+        env._get_modules()
 
 
 def test_get_installed_modules(env):
     env.env = mock.MagicMock()
-    assert env.get_installed_modules("odoo") == {"base"}
+    assert env._get_installed_modules("odoo") == {"base"}
 
 
 def test_install_all(env):
@@ -81,29 +81,29 @@ def test_install_all(env):
 def test_update_all(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
-    env.get_installed_modules = mock.MagicMock()
+    env._get_installed_modules = mock.MagicMock()
 
-    env.update_all("odoo")
+    env.update_specific("odoo", installed=True)
     odoo.modules.registry.Registry.new.assert_called_once_with(
         "odoo",
         update_module=True,
     )
 
-    env.get_installed_modules.assert_called_once()
+    env._get_installed_modules.assert_called_once()
 
 
 def test_update_listed(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
-    env.get_modules = mock.MagicMock()
+    env._get_modules = mock.MagicMock()
 
-    env.update_listed("odoo")
+    env.update_specific("odoo")
     odoo.modules.registry.Registry.new.assert_called_once_with(
         "odoo",
         update_module=True,
     )
 
-    env.get_modules.assert_called_once()
+    env._get_modules.assert_called_once()
 
 
 def test_update_changed(env):
@@ -115,9 +115,11 @@ def test_update_changed(env):
 
     # Test the fallback if the module isn't installed
     odoo_env.return_value.__enter__.return_value = {"ir.module.module": None}
-    env.update_all = mock.MagicMock()
+    env.update_specific = mock.MagicMock()
     env.update_changed("odoo", ["abc"])
-    env.update_all.assert_called_once_with("odoo", ["abc"])
+    env.update_specific.assert_called_once_with(
+        "odoo", blacklist=["abc"], installed=True
+    )
 
 
 def test_update(env):
@@ -128,10 +130,9 @@ def test_update(env):
     tools.config.__getitem__.return_value = "odoo"
     odoo.release.version_info = (14, 0)
     env.generate_config = mock.MagicMock()
-    env.get_installed_modules = mock.MagicMock()
-    env.update_all = mock.MagicMock()
+    env._get_installed_modules = mock.MagicMock()
     env.update_changed = mock.MagicMock()
-    env.update_listed = mock.MagicMock()
+    env.update_specific = mock.MagicMock()
     env._init_odoo = mock.MagicMock(return_value=False)
 
     # Init of odoo isn't possible
@@ -141,26 +142,30 @@ def test_update(env):
     env._init_odoo.return_value = True
     odoo.modules.db.is_initialized.return_value = False
     env.update()
-    env.get_installed_modules.assert_not_called()
+    env._get_installed_modules.assert_not_called()
     env.update_changed.assert_called_once()
 
     odoo.release.version_info = (15,)
     odoo.modules.db.is_initialized.return_value = True
     env.update()
-    env.get_installed_modules.assert_called()
-    env.update_all.assert_not_called()
-    env.update_listed.assert_not_called()
+    env._get_installed_modules.assert_called_once()
+    env.update_specific.assert_not_called()
 
     env.update(["--all"])
-    env.update_all.assert_called()
-    env.update_listed.assert_not_called()
+    env.update_specific.assert_called_once()
 
+    env.update_specific.reset_mock()
     env.update(["--listed"])
-    env.update_listed.assert_called()
+    env.update_specific.assert_called_once()
 
-    env.update_all.reset_mock()
+    env.update_specific.reset_mock()
     env.update(["abc", "def"])
-    env.update_all.assert_called_once_with("odoo", ["abc", "def"])
+    env.update_specific.assert_called_once_with(
+        "odoo",
+        whitelist=["abc", "def"],
+        blacklist={"normal"},
+        installed=False,
+    )
 
 
 def test_no_flags():

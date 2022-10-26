@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
@@ -23,10 +23,10 @@ def load_shell_arguments(args):
 
 
 class RunEnvironment(env.Environment):
-    """ Class to the environment """
+    """Class to the environment"""
 
     def shell(self, args=None):
-        """ Start an Odoo shell """
+        """Start an Odoo shell"""
         args, left = load_shell_arguments(args or [])
         if not self._init_odoo():
             return False
@@ -35,7 +35,7 @@ class RunEnvironment(env.Environment):
         from odoo.cli.shell import Shell
 
         if args.file:
-            sys.stdin = open(args.file, "r")
+            sys.stdin = open(args.file, "r", encoding="utf-8")
             sys.argv = [args.file] + left
         else:
             sys.argv = [""]
@@ -44,7 +44,7 @@ class RunEnvironment(env.Environment):
         return shell.run(["-c", base.ODOO_CONFIG, "--no-http"])
 
     def start(self, args=None):
-        """ Start Odoo without wrapper """
+        """Start Odoo without wrapper"""
         if not args:
             args = []
 

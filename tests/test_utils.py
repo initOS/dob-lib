@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
@@ -47,6 +47,15 @@ def test_version():
 def test_default_parser():
     parser = utils.default_parser("test")
     assert isinstance(parser, argparse.ArgumentParser)
+
+
+def test_check_filters():
+    assert utils.check_filters("abc")
+    assert utils.check_filters("abc", whitelist=["*"])
+    assert not utils.check_filters("abc", blacklist=["*"])
+    assert not utils.check_filters("abc", whitelist=["a*"], blacklist=["ab*"])
+    assert utils.check_filters("aac", whitelist=["a*"], blacklist=["ab*"])
+    assert not utils.check_filters("bac", whitelist=["a*"], blacklist=["ab*"])
 
 
 @patch("os.path.isfile")

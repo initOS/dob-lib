@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
@@ -81,6 +81,23 @@ def test_float(env):
         assert env._float({"test": 1}, lower=0, upper=42) == 21
 
 
+def test_selection(env):
+    rec = mock.MagicMock()
+    assert env._selection(rec, field="test") == rec["test"]
+
+    with pytest.raises(KeyError):
+        env._selection({}, field="test")
+
+    with mock.patch("random.choice", side_effect=["on", "off"]) as choice:
+        assert env._selection(rec) == "on"
+        choice.assert_called_once()
+        assert env._selection(rec) == "off"
+
+    with mock.patch("random.choice", return_value="a-b") as choice:
+        assert env._selection({}, choices=["a-b"]) == "a-b"
+        choice.assert_called_once()
+
+
 def test_text(env):
     assert env._text({"test": "ll"}, field="test", prefix="he", suffix="o") == "hello"
     assert env._text({"name": "yh"}, name="name", prefix="he", suffix="o") == "heyho"
@@ -102,6 +119,10 @@ def test_text(env):
     with mock.patch("uuid.uuid4", return_value="a-b") as uuid:
         assert env._text({}, uuid=4) == "a-b"
         uuid.assert_called_once()
+
+    with mock.patch("random.choice", return_value="a-b") as choice:
+        assert env._text({}, choices=["a-b"]) == "a-b"
+        choice.assert_called_once()
 
 
 def test_datetime(env):
@@ -195,9 +216,15 @@ def test_action_update(env, odoo_env, module):
     records = search.return_value
     records._fields = {"test": "integer", "const": "integer"}
     records.__len__.return_value = 2
-    records.__bool__.return_value = True
+    records.__bool__.return_value = False
     records.__getitem__.return_value = records
 
+    env._action_update(
+        odoo_env, "test", [], {"values": {"test": 42, "unknown": 42}, "chunk": 1000}
+    )
+    records.write.assert_not_called()
+
+    records.__bool__.return_value = True
     env._action_update(
         odoo_env, "test", [], {"values": {"test": 42, "unknown": 42}, "chunk": 1000}
     )
@@ -321,6 +348,7 @@ def test_apply(env):
     env._float = mock.MagicMock()
     env._integer = mock.MagicMock()
     env._text = mock.MagicMock()
+    env._selection = mock.MagicMock()
 
     mtype = mock.MagicMock()
     rec = mock.MagicMock(_fields={"test": mtype})
@@ -347,3 +375,5 @@ def test_apply(env):
     assert env._apply(rec, "test") == env._text.return_value
     mtype.type = "text"
     assert env._apply(rec, "test") == env._text.return_value
+    mtype.type = "selection"
+    assert env._apply(rec, "test") == env._selection.return_value

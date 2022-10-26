@@ -1,4 +1,4 @@
-# © 2021 Florian Kantelberg (initOS GmbH)
+# © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
@@ -17,7 +17,7 @@ from . import base, env, utils
 
 
 def aggregate_repo(repo, args, sem, err_queue, mode=None):
-    """ Aggregate one repo according to the args """
+    """Aggregate one repo according to the args"""
     try:
         if not match_dir(repo.cwd, args.dirmatch):
             return
@@ -98,10 +98,10 @@ def load_aggregate_arguments(args):
 
 
 class AggregateEnvironment(env.Environment):
-    """ Class to bootstrap the environment """
+    """Class to bootstrap the environment"""
 
     def _aggregator(self, args, mode=None):
-        """ Bootstrap the git repositories using git aggregator """
+        """Bootstrap the git repositories using git aggregator"""
 
         # Mostly adapted from the git aggregator main module with integration
         # into the dob structure
@@ -119,23 +119,23 @@ class AggregateEnvironment(env.Environment):
             if not err_queue.empty():
                 break
 
-            sem.acquire()
-            r = Repo(**repo_dict)
-            tname = os.path.basename(repo_dict["cwd"])
+            with sem:
+                r = Repo(**repo_dict)
+                tname = os.path.basename(repo_dict["cwd"])
 
-            if jobs > 1:
-                t = threading.Thread(
-                    target=aggregate_repo,
-                    args=(r, args, sem, err_queue, mode),
-                )
-                t.daemon = True
-                t.name = tname
-                threads.append(t)
-                t.start()
-            else:
-                with ThreadNameKeeper():
-                    threading.current_thread().name = tname
-                    aggregate_repo(r, args, sem, err_queue, mode)
+                if jobs > 1:
+                    t = threading.Thread(
+                        target=aggregate_repo,
+                        args=(r, args, sem, err_queue, mode),
+                    )
+                    t.daemon = True
+                    t.name = tname
+                    threads.append(t)
+                    t.start()
+                else:
+                    with ThreadNameKeeper():
+                        threading.current_thread().name = tname
+                        aggregate_repo(r, args, sem, err_queue, mode)
 
         for t in threads:
             t.join()
@@ -150,7 +150,7 @@ class AggregateEnvironment(env.Environment):
             return 1
 
     def init(self, args=None):
-        """ Initialize the environment using the git-aggregator"""
+        """Initialize the environment using the git-aggregator"""
         args, _ = load_init_arguments(args or [])
 
         if args.config:
@@ -160,6 +160,6 @@ class AggregateEnvironment(env.Environment):
         return self._aggregator(args)
 
     def aggregate(self, mode=None, args=None):
-        """ Run additional features of the git-aggregator """
+        """Run additional features of the git-aggregator"""
         args, _ = load_aggregate_arguments(args or [])
         return self._aggregator(args, mode=mode)
