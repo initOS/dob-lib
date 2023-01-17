@@ -83,45 +83,50 @@ def test_float(env):
 
 def test_selection(env):
     rec = mock.MagicMock()
-    assert env._selection(rec, field="test") == rec["test"]
+    assert env._selection(rec, name="test", field="test") == rec["test"]
 
     with pytest.raises(KeyError):
-        env._selection({}, field="test")
+        env._selection({}, name="test", field="test")
 
     with mock.patch("random.choice", side_effect=["on", "off"]) as choice:
-        assert env._selection(rec) == "on"
+        assert env._selection(rec, name="test") == "on"
         choice.assert_called_once()
-        assert env._selection(rec) == "off"
+        assert env._selection(rec, name="test") == "off"
 
     with mock.patch("random.choice", return_value="a-b") as choice:
-        assert env._selection({}, choices=["a-b"]) == "a-b"
+        assert env._selection({}, name="test", choices=["a-b"]) == "a-b"
         choice.assert_called_once()
 
 
 def test_text(env):
-    assert env._text({"test": "ll"}, field="test", prefix="he", suffix="o") == "hello"
+    assert (
+        env._text({"test": "ll"}, name="test", field="test", prefix="he", suffix="o")
+        == "hello"
+    )
     assert env._text({"name": "yh"}, name="name", prefix="he", suffix="o") == "heyho"
 
     with pytest.raises(KeyError):
-        env._text({})
+        env._text({}, name="name")
 
     with pytest.raises(KeyError):
-        env._text({}, field="test")
+        env._text({}, name="name", field="test")
 
     with mock.patch("random.choices", return_value="abc") as choices:
-        assert env._text({}, length=5, prefix="0", suffix="def") == "0abcdef"
+        assert (
+            env._text({}, name="test", length=5, prefix="0", suffix="def") == "0abcdef"
+        )
         choices.assert_called_once_with(ALNUM, k=5)
 
     with mock.patch("uuid.uuid1", return_value="a-b") as uuid:
-        assert env._text({}, uuid=1) == "a-b"
+        assert env._text({}, name="test", uuid=1) == "a-b"
         uuid.assert_called_once()
 
     with mock.patch("uuid.uuid4", return_value="a-b") as uuid:
-        assert env._text({}, uuid=4) == "a-b"
+        assert env._text({}, name="test", uuid=4) == "a-b"
         uuid.assert_called_once()
 
     with mock.patch("random.choice", return_value="a-b") as choice:
-        assert env._text({}, choices=["a-b"]) == "a-b"
+        assert env._text({}, name="test", choices=["a-b"]) == "a-b"
         choice.assert_called_once()
 
 

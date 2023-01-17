@@ -33,6 +33,7 @@ def load_action_arguments(args, actions=None):
         "\n"
         "  `action`: .. Type of action. Either update, insert or delete with update "
         "as default\n"
+        "  `enable` .. Option to enable/disable the step. Default is True.\n"
         "  `model`: .. The Odoo model to use. Required\n"
         "  `domain`: .. Search domain to specify specific records. Default is []\n"
         "  `context`: .. Dictionary to update the context of the environment for the action\n"
@@ -354,6 +355,9 @@ class ActionEnvironment(env.Environment):
         with self._manage():
             with self.env(db_name) as env:
                 for name, item in actions[args.action].items():
+                    if not item.get("enable", True):
+                        continue
+
                     utils.info(f"{args.action.capitalize()} {name}")
                     model = item.get("model")
                     if not isinstance(model, str):
