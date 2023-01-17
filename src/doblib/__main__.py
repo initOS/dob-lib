@@ -34,6 +34,8 @@ def load_arguments(args):
         "config",
         "f",
         "freeze",
+        "g",
+        "generate",
         "help",
         "i",
         "init",
@@ -59,6 +61,8 @@ def load_arguments(args):
         f"a(ction): Execute pre-defined actions on the database\n"
         f"c(onfig): Output the aggregated configuration or parts of it\n"
         f"f(reeze): Freeze the packages and repositories\n"
+        f"g(enerate): Generate the Odoo configuration. This is also part "
+        f"of `init` and `update`\n"
         f"i(nit): Initialize the repositories\n"
         f"r(un): Run the Odoo server\n"
         f"s(hell): Enter the interactive python shell\n"
@@ -105,6 +109,9 @@ def main(args=None):
     if args.command in ("c", "config"):
         # Show the configuration of the environment
         print(Environment(args.cfg).config(left))
+    elif args.command in ("g", "generate"):
+        # Regenerate the configuration file
+        sys.exit(Environment(args.cfg).generate_config())
     elif args.command in ("f", "freeze"):
         # Freeze the environment
         sys.exit(FreezeEnvironment(args.cfg).freeze(left))

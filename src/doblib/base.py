@@ -3,7 +3,9 @@
 
 import os
 
-ODOO_CONFIG = os.path.abspath("etc/odoo.cfg")
+ODOO_CONFIG = os.path.abspath(
+    os.path.join("etc", os.environ.get("ODOO_CONFIG", "odoo.cfg"))
+)
 ADDON_PATH = "/tmp/addons"
 
 SECTION = "bootstrap"
