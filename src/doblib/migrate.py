@@ -9,19 +9,9 @@ from .module import ModuleEnvironment
 from .run import RunEnvironment
 
 
-def load_migrate_arguments(args):
-    parser = utils.default_parser("init")
-    parser.add_argument(
-        "version",
-        default=[],
-        help="Target Odoo version",
-    )
-    return parser.parse_known_args(args)
-
-
 class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment):
-    def migrate(self, version, args):
-        version = utils.Version(version)
+    def migrate(self, args):
+        version = args.version
         self.generate_config()
 
         if not self._init_odoo():
@@ -41,18 +31,16 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
             db = odoo.sql_db.db_connect(db_name)
             with closing(db.cursor()) as cr:
                 if not odoo.modules.db.is_initialized(cr):
-                    utils.info("Initializing the database")
-                    odoo.modules.db.initialize(cr)
-                    cr.commit()
+                    utils.error("Odoo database not initialized")
+                    return -1
 
-            migrate_pre_script = f"pre_migrate_{version[0]}"
-            migrate_post_script = f"post_migrate_{version[0]}"
             utils.info(f"Checkout Odoo {version} repos")
             retval = self.init(args)
             if retval:
+                utils.error(f"Init step failed: {retval}")
                 return retval
             utils.info("Run pre-migration script")
-            self._run_migration(db_name, migrate_pre_script)
+            self._run_migration(db_name, f"pre_migrate_{version[0]}")
             utils.info(f"Running OpenUpgrade migration to Odoo {version}")
             open_upgrade_args = [
                 "--update",
@@ -64,8 +52,9 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
                 open_upgrade_args[-1] = "--load=base,web"
             retval = self.start(open_upgrade_args)
             if retval:
+                utils.error(f"Upgrade step failed: {retval}")
                 return retval
             utils.info("Run post-migration script")
-            self._run_migration(db_name, migrate_post_script)
+            self._run_migration(db_name, f"post_migrate_{version[0]}")
 
             return 0

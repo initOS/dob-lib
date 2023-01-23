@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from doblib import base
+from doblib import base, utils
 from doblib.migrate import MigrateEnvironment
 
 
@@ -34,16 +34,26 @@ def test_migrate(repos, env):
     env._run_migration = mock.MagicMock(return_value=0)
     env.start = mock.MagicMock(return_value=0)
 
+    args = mock.MagicMock()
+    args.version = utils.Version(13)
+
     # Init of odoo isn't possible
-    env.migrate((13, 0), [])
+    env.migrate(args)
+    env.init.assert_not_called()
+    env._run_migration.assert_not_called()
+    env.start.assert_not_called()
+
+    # Database not initialized
+    env._init_odoo.return_value = True
+    odoo.modules.db.is_initialized.return_value = False
+    env.migrate(args)
     env.init.assert_not_called()
     env._run_migration.assert_not_called()
     env.start.assert_not_called()
 
     # Initialize and run for Odoo <= 13
-    env._init_odoo.return_value = True
     odoo.modules.db.is_initialized.return_value = True
-    env.migrate("13.0", [])
+    env.migrate(args)
     env.init.assert_called_once()
     env._run_migration.assert_has_calls(
         [
@@ -57,9 +67,10 @@ def test_migrate(repos, env):
 
     env.init.reset_mock()
     env.start.reset_mock()
+    args.version = utils.Version(15)
 
     # Run for Odoo > 13
-    env.migrate("15.0", [])
+    env.migrate(args)
     env.init.assert_called_once()
     env._run_migration.assert_has_calls(
         [

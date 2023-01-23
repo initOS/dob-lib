@@ -100,7 +100,8 @@ def load_migrate_arguments(args):
     parser.add_argument(
         "version",
         default=[],
-        help="Target Odoo version",
+        type=utils.Version,
+        help="Target Odoo version, e.g. 15 or 15.0",
     )
     return parser.parse_known_args(args)
 
@@ -153,9 +154,8 @@ def main(args=None):
     elif args.command in ("m", "migrate"):
         # Run Odoo migration using OpenUpgrade
         migrate_args, left = load_migrate_arguments(left)
-        version = migrate_args.version
-        migrate_cfg = f"odoo.migrate.{version}.yaml"
-        sys.exit(MigrateEnvironment(migrate_cfg).migrate(version, left))
+        migrate_cfg = f"odoo.migrate.{migrate_args.version[0]}.yaml"
+        sys.exit(MigrateEnvironment(migrate_cfg).migrate(migrate_args))
     elif args.command in ("show-all-prs", "show-closed-prs"):
         sys.exit(AggregateEnvironment(args.cfg).aggregate(args.command, left))
     elif show_help:
