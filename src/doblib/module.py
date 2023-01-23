@@ -103,7 +103,7 @@ class ModuleEnvironment(env.Environment):
         config["init"] = dict.fromkeys(modules, 1)
         config["update"] = {}
         config["overwrite_existing_translations"] = True
-        without_demo = self.opt("without_demo", default=True)
+        without_demo = utils.tobool(self.opt("without_demo", default=True))
         languages = self.opt("load_language")
         if languages and isinstance(languages, list):
             config["load_language"] = ",".join(languages)

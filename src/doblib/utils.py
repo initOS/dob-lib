@@ -123,6 +123,12 @@ def config_logger(log_level=logging.INFO):
             logger.setLevel(log_level)
 
 
+def tobool(x):
+    if isinstance(x, str):
+        return x.lower() in ("t", "true", "1", "on", "yes", "y")
+    return bool(x)
+
+
 class Version:
     """Class to read and and compare versions. Instances are getting
     passed to the migration scripts"""
