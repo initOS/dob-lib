@@ -11,7 +11,7 @@ from .aggregate import AggregateEnvironment
 from .ci import CI, CIEnvironment
 from .env import Environment
 from .freeze import FreezeEnvironment
-from .migrate import MigrateEnvironment
+from .migrate import MigrateEnvironment, load_migrate_arguments
 from .module import ModuleEnvironment
 from .run import RunEnvironment
 from .utils import config_logger
@@ -91,17 +91,6 @@ def load_arguments(args):
         choices=list(LOG_LEVELS),
         default="info",
         help="Logging level. Default: %(default)s",
-    )
-    return parser.parse_known_args(args)
-
-
-def load_migrate_arguments(args):
-    parser = utils.default_parser("init")
-    parser.add_argument(
-        "version",
-        default=[],
-        type=utils.Version,
-        help="Target Odoo version, e.g. 15 or 15.0",
     )
     return parser.parse_known_args(args)
 

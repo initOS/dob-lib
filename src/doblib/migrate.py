@@ -9,10 +9,27 @@ from .module import ModuleEnvironment
 from .run import RunEnvironment
 
 
+def load_migrate_arguments(args):
+    parser = utils.default_parser("init")
+    parser.add_argument(
+        "version",
+        default=[],
+        type=utils.Version,
+        help="Target Odoo version, e.g. 15 or 15.0",
+    )
+    return parser.parse_known_args(args)
+
+
 class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment):
     def migrate(self, args):
         version = args.version
         self.generate_config()
+
+        utils.info(f"Checkout Odoo {version} repos")
+        retval = self.init()
+        if retval:
+            utils.error(f"Init step failed: {retval}")
+            return retval
 
         if not self._init_odoo():
             return
@@ -34,11 +51,6 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
                     utils.error("Odoo database not initialized")
                     return -1
 
-            utils.info(f"Checkout Odoo {version} repos")
-            retval = self.init(args)
-            if retval:
-                utils.error(f"Init step failed: {retval}")
-                return retval
             utils.info("Run pre-migration script")
             self._run_migration(db_name, f"pre_migrate_{version[0]}")
             utils.info(f"Running OpenUpgrade migration to Odoo {version}")
