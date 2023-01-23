@@ -156,3 +156,6 @@ class Version:
 
     def __ge__(self, other):
         return self.version >= Version(other).version
+
+    def __getitem__(self, item):
+        return self.version[item]
