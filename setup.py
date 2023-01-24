@@ -26,7 +26,7 @@ if not os.getenv("DISABLE_PYTEST_ODOO"):
 
 setup(
     name="doblib",
-    version="0.12.0",
+    version="0.13.0",
     author="initOS GmbH",
     author_email="info@initos.com",
     description="Management tool for Odoo installations",

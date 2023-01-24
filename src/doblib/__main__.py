@@ -11,6 +11,7 @@ from .aggregate import AggregateEnvironment
 from .ci import CI, CIEnvironment
 from .env import Environment
 from .freeze import FreezeEnvironment
+from .migrate import MigrateEnvironment, load_migrate_arguments
 from .module import ModuleEnvironment
 from .run import RunEnvironment
 from .utils import config_logger
@@ -39,6 +40,8 @@ def load_arguments(args):
         "help",
         "i",
         "init",
+        "m",
+        "migrate",
         "r",
         "run",
         "s",
@@ -64,6 +67,7 @@ def load_arguments(args):
         f"g(enerate): Generate the Odoo configuration. This is also part "
         f"of `init` and `update`\n"
         f"i(nit): Initialize the repositories\n"
+        f"m(igrate): Run OpenUpgrade to migrate to a new Odoo version\n"
         f"r(un): Run the Odoo server\n"
         f"s(hell): Enter the interactive python shell\n"
         f"t(est): Execute the unittests\n"
@@ -136,6 +140,11 @@ def main(args=None):
     elif args.command in ("a", "action"):
         # Run actions in the environment
         sys.exit(ActionEnvironment(args.cfg).apply_action(left))
+    elif args.command in ("m", "migrate"):
+        # Run Odoo migration using OpenUpgrade
+        migrate_args, left = load_migrate_arguments(left)
+        migrate_cfg = f"odoo.migrate.{migrate_args.version[0]}.yaml"
+        sys.exit(MigrateEnvironment(migrate_cfg).migrate(migrate_args))
     elif args.command in ("show-all-prs", "show-closed-prs"):
         sys.exit(AggregateEnvironment(args.cfg).aggregate(args.command, left))
     elif show_help:
