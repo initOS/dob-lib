@@ -13,7 +13,7 @@ def load_migrate_arguments(args):
     parser = utils.default_parser("migrate")
     parser.add_argument(
         "version",
-        default=[],
+        default=None,
         type=utils.Version,
         help="Target Odoo version, e.g. 15 or 15.0",
     )
