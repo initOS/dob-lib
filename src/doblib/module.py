@@ -17,7 +17,7 @@ def no_flags(x):
 
 
 def load_update_arguments(args):
-    parser = utils.default_parser("init")
+    parser = utils.default_parser("update")
     parser.add_argument(
         "modules",
         nargs=argparse.REMAINDER,

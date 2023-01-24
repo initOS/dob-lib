@@ -38,17 +38,19 @@ def test_migrate(repos, env):
 
     # Init of odoo isn't possible
     env.migrate(args)
-    env.init.assert_not_called()
+    env.init.assert_called_once()
     env._run_migration.assert_not_called()
     env.start.assert_not_called()
+    env.init.reset_mock()
 
     # Database not initialized
     env._init_odoo.return_value = True
     odoo.modules.db.is_initialized.return_value = False
     env.migrate(args)
-    env.init.assert_not_called()
+    env.init.assert_called_once()
     env._run_migration.assert_not_called()
     env.start.assert_not_called()
+    env.init.reset_mock()
 
     # Initialize and run for Odoo <= 13
     odoo.modules.db.is_initialized.return_value = True

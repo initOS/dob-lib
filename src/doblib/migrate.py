@@ -10,7 +10,7 @@ from .run import RunEnvironment
 
 
 def load_migrate_arguments(args):
-    parser = utils.default_parser("init")
+    parser = utils.default_parser("migrate")
     parser.add_argument(
         "version",
         default=[],
@@ -62,11 +62,12 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
             ]
             if version <= (13, 0):
                 open_upgrade_args[-1] = "--load=base,web"
+
             retval = self.start(open_upgrade_args)
             if retval:
                 utils.error(f"Upgrade step failed: {retval}")
                 return retval
+
             utils.info("Run post-migration script")
             self._run_migration(db_name, f"post_migrate_{version[0]}")
-
             return 0
