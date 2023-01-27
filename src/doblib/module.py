@@ -116,7 +116,9 @@ class ModuleEnvironment(env.Environment):
             force_demo=not without_demo,
         )
 
-    def update_specific(self, db_name, whitelist=None, blacklist=None, installed=False):
+    def update_specific(
+        self, db_name, whitelist=None, blacklist=None, installed=False, listed=False
+    ):
         """Update all modules"""
         # pylint: disable=C0415,E0401
         import odoo
@@ -126,13 +128,16 @@ class ModuleEnvironment(env.Environment):
 
         if installed:
             utils.info("Updating all modules")
-            modules = self._get_installed_modules(db_name)
-        else:
+            modules = ["all"]
+        elif listed:
             utils.info("Updating listed modules")
             modules = self._get_modules()
+        else:
+            utils.info("Updating specific modules")
+            modules = self._get_installed_modules(db_name)
 
-        modules = (modules or whitelist).intersection(whitelist)
-        modules.difference_update(blacklist or [])
+            modules = (modules or whitelist).intersection(whitelist)
+            modules.difference_update(blacklist or [])
 
         config["init"] = {}
         config["update"] = dict.fromkeys(modules, 1)
@@ -206,6 +211,7 @@ class ModuleEnvironment(env.Environment):
                     whitelist=args.modules,
                     blacklist=uninstalled,
                     installed=args.all,
+                    listed=args.listed,
                 )
             else:
                 self.update_changed(db_name, uninstalled)

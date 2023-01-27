@@ -81,7 +81,6 @@ def test_install_all(env):
 def test_update_all(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
-    env._get_installed_modules = mock.MagicMock()
 
     env.update_specific("odoo", installed=True)
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -89,15 +88,13 @@ def test_update_all(env):
         update_module=True,
     )
 
-    env._get_installed_modules.assert_called_once()
-
 
 def test_update_listed(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
     env._get_modules = mock.MagicMock()
 
-    env.update_specific("odoo")
+    env.update_specific("odoo", listed=True)
     odoo.modules.registry.Registry.new.assert_called_once_with(
         "odoo",
         update_module=True,
@@ -165,6 +162,7 @@ def test_update(env):
         whitelist=["abc", "def"],
         blacklist={"normal"},
         installed=False,
+        listed=False,
     )
 
 
