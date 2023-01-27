@@ -20,6 +20,14 @@ def load_action_arguments(args, actions=None):
         help=f"Action to run. Possible choices: {','.join(actions)}",
     )
     parser.add_argument(
+        "steps",
+        default=[],
+        action="extend",
+        type=str,
+        nargs="*",
+        help="Specific steps to run",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         default=False,
@@ -356,6 +364,9 @@ class ActionEnvironment(env.Environment):
             with self.env(db_name) as env:
                 for name, item in actions[args.action].items():
                     if not item.get("enable", True):
+                        continue
+
+                    if args.steps and name not in args.steps:
                         continue
 
                     utils.info(f"{args.action.capitalize()} {name}")
