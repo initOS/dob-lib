@@ -22,7 +22,7 @@ def load_action_arguments(args, actions=None):
     parser.add_argument(
         "steps",
         default=[],
-        action="extend",
+        action="append",
         type=str,
         nargs="*",
         help="Specific steps to run",
