@@ -366,7 +366,9 @@ class ActionEnvironment(env.Environment):
                     if not item.get("enable", True):
                         continue
 
-                    if args.steps and name not in args.steps:
+                    steps = sum(args.steps, [])
+
+                    if steps and name not in steps:
                         continue
 
                     utils.info(f"{args.action.capitalize()} {name}")
