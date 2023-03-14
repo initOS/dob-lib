@@ -6,6 +6,8 @@ import string
 import uuid
 from datetime import date, datetime, timedelta
 
+from dateutil.relativedelta import relativedelta
+
 from . import base, env, utils
 
 ALNUM = string.ascii_letters + string.digits
@@ -61,6 +63,11 @@ def load_action_arguments(args, actions=None):
         "  `length`: .. Generate a random alphanumeric value of this length°°\n"
         "  `uuid`: .. Generate a new uuid. Supported values are 1 or 4°°\n"
         "  `choices`: .. List of values to pick a random value°°°\n"
+        "\n"
+        "  Additionally for Date or Datetime the specific parts of the value can be\n"
+        "  replaced with a constant integer or a dict with `lower` and `upper` value.\n"
+        "  Following attributes can be used as keys:\n"
+        "    `year`, `month`, `day`, `hour`, `minute`, `second`"
         "\n"
         "°   Only available for Integer, Float, Date or Datetime\n"
         "°°  Only available for Char, Html, or Text\n"
@@ -198,30 +205,69 @@ class ActionEnvironment(env.Environment):
 
         return prefix + rec[name] + suffix
 
-    def _datetime(self, rec, **kw):
+    def _datetime_parts(self, value, attrs):
+        """Replace specific parts of a date or datetime value"""
+
+        bounds = {
+            "year": (1900, 2100),
+            "month": (1, 12),
+            "day": (1, 31),  # dateutil will handle the rest
+            "hour": (0, 23),
+            "minute": (0, 59),
+            "second": (0, 59),
+        }
+
+        replacement = {}
+        for name, attr in attrs.items():
+            if attr is None:
+                attr = {}
+
+            if isinstance(attr, dict):
+                lower, upper = bounds.get(name, (0, 0))
+                lower = attr.get("lower", lower)
+                upper = attr.get("upper", upper)
+                replacement[name] = random.randint(lower, upper)
+            else:
+                replacement[name] = attr
+
+        return value + relativedelta(**replacement)
+
+    def _datetime(self, rec, name, **kw):
         """Return a value for datetime fields depending on the arguments
 
         * Take the value from a `field` of the record
+        * Replacement of specific parts
         * Random value between `lower` and `upper`
         """
         field = kw.get("field", None)
         if field:
             return rec[field]
+
+        attrs = ["year", "month", "day", "hour", "minute", "second"]
+        attrs = {k: kw[k] for k in attrs if k in kw}
+        if attrs:
+            return self._datetime_parts(rec[name] or datetime.now(), attrs)
 
         lower = kw.get("lower", datetime(1970, 1, 1))
         upper = kw.get("upper", datetime.now())
         diff = upper - lower
         return lower + timedelta(seconds=random.randint(0, diff.seconds))
 
-    def _date(self, rec, **kw):
+    def _date(self, rec, name, **kw):
         """Return a value for date fields depending on the arguments
 
         * Take the value from a `field` of the record
+        * Replacement of specific parts
         * Random value between `lower` and `upper`
         """
         field = kw.get("field", None)
         if field:
             return rec[field]
+
+        attrs = ["year", "month", "day"]
+        attrs = {k: kw[k] for k in attrs if k in kw}
+        if attrs:
+            return self._datetime_parts(rec[name] or date.today(), attrs)
 
         lower = kw.get("lower", date(1970, 1, 1))
         upper = kw.get("upper", date.today())
