@@ -17,6 +17,7 @@ deps = [
     "ipython",
     "isort>=4.3.10",
     "pylint_odoo",
+    "python-dateutil",
     "pytest-cov",
     "PyYAML",
 ]
@@ -26,7 +27,7 @@ if not os.getenv("DISABLE_PYTEST_ODOO"):
 
 setup(
     name="doblib",
-    version="0.14.0",
+    version="0.15.0",
     author="initOS GmbH",
     author_email="info@initos.com",
     description="Management tool for Odoo installations",

@@ -131,19 +131,40 @@ def test_text(env):
 
 
 def test_datetime(env):
-    assert env._datetime({"test": "abc"}, field="test") == "abc"
+    assert env._datetime({"test": "abc", "k": "a"}, name="k", field="test") == "abc"
 
     with mock.patch("random.randint", return_value=0.0) as randint:
-        assert env._datetime({}) == datetime(1970, 1, 1)
+        assert env._datetime({}, name="test") == datetime(1970, 1, 1)
         randint.assert_called_once()
+
+    attrs = {"hour": 12, "day": 32, "month": {"lower": 3, "upper": 9}}
+    dt = datetime(2023, 1, 1, 0, 0, 0)
+    res = env._datetime({"test": dt}, name="test", **attrs)
+    assert res.day >= 28  # last day of the month must be bigger than 28
+    assert res.hour == 12
+    assert 3 <= res.month <= 9
+
+    with mock.patch("random.randint", return_value=42) as randint:
+        attrs = {"second": None}
+        res = env._datetime({"test": dt}, name="test", second=None)
+        assert res.second == 42
+        randint.assert_called_once()
+
+    attrs = {"hour": 12, "day": 32, "month": {"lower": 3, "upper": 9}}
+    res = env._datetime({"test": datetime(2023, 1, 1, 0, 0, 0)}, name="test", **attrs)
 
 
 def test_date(env):
-    assert env._date({"test": "abc"}, field="test") == "abc"
+    assert env._date({"test": "abc", "k": "a"}, name="k", field="test") == "abc"
 
     with mock.patch("random.randint", return_value=0.0) as randint:
-        assert env._date({}) == date(1970, 1, 1)
+        assert env._date({}, name="test") == date(1970, 1, 1)
         randint.assert_called_once()
+
+    attrs = {"hour": 12, "day": 32, "month": {"lower": 3, "upper": 9}}
+    res = env._date({"test": date(2023, 1, 1)}, name="test", **attrs)
+    assert res.day >= 28  # last day of the month must be bigger than 28
+    assert 3 <= res.month <= 9
 
 
 @mock.patch("doblib.utils.warn")
