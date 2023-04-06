@@ -79,7 +79,7 @@ def load_action_arguments(args, actions=None):
 class ActionEnvironment(env.Environment):
     """Class to apply actions in the environment"""
 
-    def _apply(self, rec, name, **kw):
+    def _apply(self, env, rec, name, **kw):
         """Apply an action on a field of a record"""
         field_type = rec._fields[name].type
         if field_type == "boolean":
@@ -97,9 +97,9 @@ class ActionEnvironment(env.Environment):
         if field_type == "selection":
             return self._selection(rec, name=name, **kw)
         if field_type == "many2one":
-            return self._many2one(rec, name=name, **kw)
+            return self._many2one(env, rec, name=name, **kw)
         if field_type == "many2many":
-            return self._many2many(rec, name=name, **kw)
+            return self._many2many(env, rec, name=name, **kw)
         raise TypeError("Field type is not supported by action handler")
 
     def _boolean(self, rec, **kw):
@@ -277,26 +277,26 @@ class ActionEnvironment(env.Environment):
         upper = kw.get("upper", date.today())
         return lower + timedelta(days=random.randint(0, (upper - lower).days))
 
-    def _many2one(self, rec, name, **kw):
+    def _many2one(self, env, rec, name, **kw):
         """Return a value for Many2one fields depending on the arguments
 
         * Replacement of the reference with a random record from a search with
           a `domain` filter
         """
         domain = kw.get("domain", [])
-        records = self.env[rec._name].search(domain)
+        records = env[rec._name].search(domain)
         if not records:
             return False
         return random.choice(records.ids)
 
-    def _many2many(self, rec, name, **kw):
+    def _many2many(self, env, rec, name, **kw):
         """Return a value for Many2many fields depending on the arguments
 
         * Replacement of the references with random records from a search with
           a `domain` filter. If `num` is specified, return `num` random records.
         """
         domain = kw.get("domain", [])
-        records = self.env[rec._name].search(domain)
+        records = env[rec._name].search(domain)
 
         if not records:
             return [(5,)]
@@ -401,7 +401,7 @@ class ActionEnvironment(env.Environment):
             for rec in records:
                 vals = {}
                 for name, apply_act in dynamic.items():
-                    vals[name] = self._apply(rec, name, **apply_act)
+                    vals[name] = self._apply(env, rec, name, **apply_act)
                 rec.write(vals)
 
                 counter += 1
