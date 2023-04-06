@@ -96,6 +96,10 @@ class ActionEnvironment(env.Environment):
             return self._text(rec, name=name, **kw)
         if field_type == "selection":
             return self._selection(rec, name=name, **kw)
+        if field_type == "many2one":
+            return self._many2one(rec, name=name, **kw)
+        if field_type == "many2many":
+            return self._many2many(rec, name=name, **kw)
         raise TypeError("Field type is not supported by action handler")
 
     def _boolean(self, rec, **kw):
@@ -272,6 +276,37 @@ class ActionEnvironment(env.Environment):
         lower = kw.get("lower", date(1970, 1, 1))
         upper = kw.get("upper", date.today())
         return lower + timedelta(days=random.randint(0, (upper - lower).days))
+
+    def _many2one(self, rec, name, **kw):
+        """Return a value for Many2one fields depending on the arguments
+
+        * Replacement of the reference with a random record from a search with
+          a `domain` filter
+        """
+        domain = kw.get("domain", [])
+        records = self.env[rec._name].search(domain)
+        if not records:
+            return False
+        return random.choice(records.ids)
+
+    def _many2many(self, rec, name, **kw):
+        """Return a value for Many2many fields depending on the arguments
+
+        * Replacement of the references with random records from a search with
+          a `domain` filter. If `num` is specified, return `num` random records.
+        """
+        domain = kw.get("domain", [])
+        records = self.env[rec._name].search(domain)
+
+        if not records:
+            return [(5,)]
+
+        num = kw.get("num", None)
+        if num is None:
+            return [(6, 0, [random.choice(records.ids)])]
+
+        selected_records = random.sample(records.ids, min(num, len(records)))
+        return [(6, 0, selected_records)]
 
     def _replace_references(self, env, references, values):
         resolved_refs = {}
