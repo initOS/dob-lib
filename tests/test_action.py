@@ -287,7 +287,11 @@ def test_action_update(env, odoo_env, module):
     search.assert_not_called()
 
     records = search.return_value
-    records._fields = {"test": "integer", "const": "integer"}
+    test_model = mock.MagicMock()
+    test_model.type = "integer"
+    const_model = mock.MagicMock()
+    const_model.type = "integer"
+    records._fields = {"test": test_model, "const": const_model}
     records.__len__.return_value = 2
     records.__bool__.return_value = False
     records.__getitem__.return_value = records
