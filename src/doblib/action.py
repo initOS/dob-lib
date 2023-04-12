@@ -284,7 +284,7 @@ class ActionEnvironment(env.Environment):
           a `domain` filter
         """
         domain = kw.get("domain", [])
-        records = rec.env[rec._name].search(domain)
+        records = rec.env[rec._fields[name].comodel_name].search(domain)
         if not records:
             return False
         return random.choice(records.ids)
@@ -296,13 +296,12 @@ class ActionEnvironment(env.Environment):
           a `domain` filter. If `length` is specified, return `length` random records.
         """
         domain = kw.get("domain", [])
-        records = rec.env[rec._name].search(domain)
+        records = rec.env[rec._fields[name].comodel_name].search(domain)
 
         if not records:
             return [(5,)]
 
         length = kw.get("length", len(rec[name]))
-        print(length)
 
         selected_records = random.sample(records.ids, min(length, len(records)))
         return [(6, 0, selected_records)]
@@ -380,8 +379,8 @@ class ActionEnvironment(env.Environment):
             if name not in records._fields:
                 continue
 
-            if isinstance(apply_act, dict):
-                dynamic[name] = apply_act
+            if isinstance(apply_act, dict) or records._fields[name].type == "many2many":
+                dynamic[name] = apply_act if apply_act is not None else {}
             else:
                 const[name] = apply_act
 
