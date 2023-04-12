@@ -301,9 +301,8 @@ class ActionEnvironment(env.Environment):
         if not records:
             return [(5,)]
 
-        length = kw.get("length", None)
-        if length is None:
-            return [(6, 0, [random.sample(records.ids, min(len(rec.name), len(records)))])]
+        length = kw.get("length", len(rec[name]))
+        print(length)
 
         selected_records = random.sample(records.ids, min(length, len(records)))
         return [(6, 0, selected_records)]

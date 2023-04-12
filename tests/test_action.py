@@ -173,9 +173,9 @@ def test_many2one(env):
 
     odoo_env = mock.MagicMock()
     odoo_env.__getitem__.return_value.search.return_value = False
-    env.env = odoo_env
+    rec.env = odoo_env
 
-    assert env._many2one(rec) is False
+    assert env._many2one(rec, "test") is False
 
     recordset = mock.MagicMock()
     recordset.ids = [4, 2, 7, 9]
@@ -183,7 +183,7 @@ def test_many2one(env):
     odoo_env.__getitem__.return_value.search = search
 
     with mock.patch("random.choice", lambda x: x[0]):
-        assert env._many2one(rec, domain=[("test", "=", True)]) == 4
+        assert env._many2one(rec, "test", domain=[("test", "=", True)]) == 4
         assert odoo_env.__getitem__.called_once_with("TEST")
         assert search.called_once_with([("test", "=", True)])
 
@@ -191,12 +191,13 @@ def test_many2one(env):
 def test_many2many(env):
     rec = mock.MagicMock()
     rec._name = "TEST"
+    rec.__getitem__.return_value.__len__.return_value = 1
 
     odoo_env = mock.MagicMock()
     odoo_env.__getitem__.return_value.search.return_value = False
-    env.env = odoo_env
+    rec.env = odoo_env
 
-    assert env._many2many(rec) == [(5,)]
+    assert env._many2many(rec, "test") == [(5,)]
 
     recordset = mock.MagicMock()
     recordset.ids = [4, 2, 7, 9]
@@ -205,13 +206,12 @@ def test_many2many(env):
     search = mock.MagicMock(return_value=recordset)
     odoo_env.__getitem__.return_value.search = search
 
-    with mock.patch("random.choice", lambda x: x[0]):
-        assert env._many2many(rec, domain=[("test", "=", True)]) == [(6, 0, [4])]
+    with mock.patch("random.sample", lambda x, n: x[:n]):
+        assert env._many2many(rec, "test", domain=[("test", "=", True)]) == [(6, 0, [4])]
         assert odoo_env.__getitem__.called_once_with("TEST")
         assert search.called_once_with([("test", "=", True)])
 
-    with mock.patch("random.sample", lambda x, n: x[:n]):
-        assert env._many2many(rec, num=2) == [(6, 0, [4, 2])]
+        assert env._many2many(rec, "test", length=2) == [(6, 0, [4, 2])]
 
 
 @mock.patch("doblib.utils.warn")
