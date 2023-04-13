@@ -385,8 +385,8 @@ class ActionEnvironment(env.Environment):
             if name not in records._fields:
                 continue
 
-            if isinstance(apply_act, dict) or records._fields[name].type == "many2many":
-                dynamic[name] = apply_act if apply_act is not None else {}
+            if isinstance(apply_act, dict):
+                dynamic[name] = apply_act
             else:
                 const[name] = apply_act
 
