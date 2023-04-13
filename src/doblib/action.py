@@ -77,7 +77,7 @@ def load_action_arguments(args, actions=None):
         "[t] Char, Html, Text\n"
         "[s] Selection\n"
         "[o] Many2one\n"
-        "[n] Many2many\n",
+        "[m] Many2many\n",
     )
     return parser.parse_known_args(args)
 
