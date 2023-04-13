@@ -167,6 +167,49 @@ def test_date(env):
     assert 3 <= res.month <= 9
 
 
+def test_many2one(env):
+    rec = mock.MagicMock()
+    rec._name = "TEST"
+    rec.__getitem__ = mock.MagicMock()
+    rec.__getitem__.return_value.search.return_value = False
+
+    assert env._many2one(rec, "test") is False
+
+    recordset = mock.MagicMock()
+    recordset.ids = [4, 2, 7, 9]
+    search = mock.MagicMock(return_value=recordset)
+    rec.__getitem__.return_value.search = search
+
+    with mock.patch("random.choice", lambda x: x[0]):
+        assert env._many2one(rec, "test", domain=[("test", "=", True)]) == 4
+        assert rec.__getitem__.called_once_with("TEST")
+        assert search.called_once_with([("test", "=", True)])
+
+
+def test_many2many(env):
+    rec = mock.MagicMock()
+    rec._name = "TEST"
+    rec.__getitem__ = mock.MagicMock()
+    rec.__getitem__.return_value.__len__.return_value = 1
+    rec.__getitem__.return_value.search.return_value = False
+
+    assert env._many2many(rec, "test") == [(5,)]
+
+    recordset = mock.MagicMock()
+    recordset.ids = [4, 2, 7, 9]
+    recordset.__len__.return_value = 4
+
+    search = mock.MagicMock(return_value=recordset)
+    rec.__getitem__.return_value.search = search
+
+    with mock.patch("random.sample", lambda x, n: x[:n]):
+        assert env._many2many(rec, "test", domain=[("test", "=", True)]) == [(6, 0, [4])]
+        assert rec.__getitem__.called_once_with("TEST")
+        assert search.called_once_with([("test", "=", True)])
+
+        assert env._many2many(rec, "test", length=2) == [(6, 0, [4, 2])]
+
+
 @mock.patch("doblib.utils.warn")
 def test_action_delete(call_mock, env, odoo_env, module):
     domain = [["abc", "=", 42], ["def", "=", "$value"]]
@@ -240,7 +283,11 @@ def test_action_update(env, odoo_env, module):
     search.assert_not_called()
 
     records = search.return_value
-    records._fields = {"test": "integer", "const": "integer"}
+    test_model = mock.MagicMock()
+    test_model.type = "integer"
+    const_model = mock.MagicMock()
+    const_model.type = "integer"
+    records._fields = {"test": test_model, "const": const_model}
     records.__len__.return_value = 2
     records.__bool__.return_value = False
     records.__getitem__.return_value = records

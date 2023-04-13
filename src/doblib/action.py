@@ -55,23 +55,29 @@ def load_action_arguments(args, actions=None):
         "`values` can be defined as a constant value or as dictionary which allows "
         "dynamic values. Following is possible:\n"
         "\n"
-        "  `field`: .. A field name to copy the value from\n"
-        "  `lower`: .. The lower bounds for randomized values°\n"
-        "  `upper`: .. The upper bounds for randomized values°\n"
-        "  `prefix`: .. Prefix to add for the new value°°\n"
-        "  `suffix`: .. Suffix to add for the new value°°\n"
-        "  `length`: .. Generate a random alphanumeric value of this length°°\n"
-        "  `uuid`: .. Generate a new uuid. Supported values are 1 or 4°°\n"
-        "  `choices`: .. List of values to pick a random value°°°\n"
+        "  `field`: .. A field name to copy the value from [n,d,t,s]\n"
+        "  `lower`: .. The lower bounds for randomized values [n,d]\n"
+        "  `upper`: .. The upper bounds for randomized values [n,d]\n"
+        "  `prefix`: .. Prefix to add for the new value [t]\n"
+        "  `suffix`: .. Suffix to add for the new value [t]\n"
+        "  `length`: .. Generate a random alphanumeric value of this length [t]\n"
+        "            .. Number of records to pick [m]\n"
+        "  `uuid`: .. Generate a new uuid. Supported values are 1 or 4 [t]\n"
+        "  `choices`: .. List of values to pick a random value [t,s]\n"
+        "  `domain`: .. Domain to pick a random record from [o,m]\n"
         "\n"
         "  Additionally for Date or Datetime the specific parts of the value can be\n"
         "  replaced with a constant integer or a dict with `lower` and `upper` value.\n"
         "  Following attributes can be used as keys:\n"
         "    `year`, `month`, `day`, `hour`, `minute`, `second`"
         "\n"
-        "°   Only available for Integer, Float, Date or Datetime\n"
-        "°°  Only available for Char, Html, or Text\n"
-        "°°° Only available for Char, Html, Text or Selection\n",
+        "Only available for:\n"
+        "[n] Integer, Float, Monetary\n"
+        "[d] Date, Datetime\n"
+        "[t] Char, Html, Text\n"
+        "[s] Selection\n"
+        "[o] Many2one\n"
+        "[m] Many2many\n",
     )
     return parser.parse_known_args(args)
 
@@ -96,6 +102,10 @@ class ActionEnvironment(env.Environment):
             return self._text(rec, name=name, **kw)
         if field_type == "selection":
             return self._selection(rec, name=name, **kw)
+        if field_type == "many2one":
+            return self._many2one(rec, name=name, **kw)
+        if field_type == "many2many":
+            return self._many2many(rec, name=name, **kw)
         raise TypeError("Field type is not supported by action handler")
 
     def _boolean(self, rec, **kw):
@@ -273,6 +283,35 @@ class ActionEnvironment(env.Environment):
         upper = kw.get("upper", date.today())
         return lower + timedelta(days=random.randint(0, (upper - lower).days))
 
+    def _many2one(self, rec, name, **kw):
+        """Return a value for Many2one fields depending on the arguments
+
+        * Replacement of the reference with a random record from a search with
+          a `domain` filter
+        """
+        domain = kw.get("domain", [])
+        records = rec[name].search(domain)
+        if not records:
+            return False
+        return random.choice(records.ids)
+
+    def _many2many(self, rec, name, **kw):
+        """Return a value for Many2many fields depending on the arguments
+
+        * Replacement of the references with random records from a search with
+          a `domain` filter. If `length` is specified, return `length` random records.
+        """
+        domain = kw.get("domain", [])
+        records = rec[name].search(domain)
+
+        if not records:
+            return [(5,)]
+
+        length = kw.get("length", len(rec[name]))
+
+        selected_records = random.sample(records.ids, min(length, len(records)))
+        return [(6, 0, selected_records)]
+
     def _replace_references(self, env, references, values):
         resolved_refs = {}
         for key, val in references.items():
@@ -346,8 +385,8 @@ class ActionEnvironment(env.Environment):
             if name not in records._fields:
                 continue
 
-            if isinstance(apply_act, dict):
-                dynamic[name] = apply_act
+            if isinstance(apply_act, dict) or records._fields[name].type == "many2many":
+                dynamic[name] = apply_act if apply_act is not None else {}
             else:
                 const[name] = apply_act
 
