@@ -170,32 +170,28 @@ def test_date(env):
 def test_many2one(env):
     rec = mock.MagicMock()
     rec._name = "TEST"
-
-    odoo_env = mock.MagicMock()
-    odoo_env.__getitem__.return_value.search.return_value = False
-    rec.env = odoo_env
+    rec.__getitem__ = mock.MagicMock()
+    rec.__getitem__.return_value.search.return_value = False
 
     assert env._many2one(rec, "test") is False
 
     recordset = mock.MagicMock()
     recordset.ids = [4, 2, 7, 9]
     search = mock.MagicMock(return_value=recordset)
-    odoo_env.__getitem__.return_value.search = search
+    rec.__getitem__.return_value.search = search
 
     with mock.patch("random.choice", lambda x: x[0]):
         assert env._many2one(rec, "test", domain=[("test", "=", True)]) == 4
-        assert odoo_env.__getitem__.called_once_with("TEST")
+        assert rec.__getitem__.called_once_with("TEST")
         assert search.called_once_with([("test", "=", True)])
 
 
 def test_many2many(env):
     rec = mock.MagicMock()
     rec._name = "TEST"
+    rec.__getitem__ = mock.MagicMock()
     rec.__getitem__.return_value.__len__.return_value = 1
-
-    odoo_env = mock.MagicMock()
-    odoo_env.__getitem__.return_value.search.return_value = False
-    rec.env = odoo_env
+    rec.__getitem__.return_value.search.return_value = False
 
     assert env._many2many(rec, "test") == [(5,)]
 
@@ -204,11 +200,11 @@ def test_many2many(env):
     recordset.__len__.return_value = 4
 
     search = mock.MagicMock(return_value=recordset)
-    odoo_env.__getitem__.return_value.search = search
+    rec.__getitem__.return_value.search = search
 
     with mock.patch("random.sample", lambda x, n: x[:n]):
         assert env._many2many(rec, "test", domain=[("test", "=", True)]) == [(6, 0, [4])]
-        assert odoo_env.__getitem__.called_once_with("TEST")
+        assert rec.__getitem__.called_once_with("TEST")
         assert search.called_once_with([("test", "=", True)])
 
         assert env._many2many(rec, "test", length=2) == [(6, 0, [4, 2])]

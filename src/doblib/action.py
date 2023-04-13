@@ -55,28 +55,29 @@ def load_action_arguments(args, actions=None):
         "`values` can be defined as a constant value or as dictionary which allows "
         "dynamic values. Following is possible:\n"
         "\n"
-        "  `field`: .. A field name to copy the value from°\n"
-        "  `lower`: .. The lower bounds for randomized values°°\n"
-        "  `upper`: .. The upper bounds for randomized values°°\n"
-        "  `prefix`: .. Prefix to add for the new value°°°\n"
-        "  `suffix`: .. Suffix to add for the new value°°°\n"
-        "  `length`: .. Generate a random alphanumeric value of this length°°°\n"
-        "  `uuid`: .. Generate a new uuid. Supported values are 1 or 4°°°\n"
-        "  `choices`: .. List of values to pick a random value*\n"
-        "  `domain`: .. Domain to pick a random record from**\n"
-        "  `length`: .. Number of records to pick***\n"
+        "  `field`: .. A field name to copy the value from [n,d,t,s]\n"
+        "  `lower`: .. The lower bounds for randomized values [n,d]\n"
+        "  `upper`: .. The upper bounds for randomized values [n,d]\n"
+        "  `prefix`: .. Prefix to add for the new value [t]\n"
+        "  `suffix`: .. Suffix to add for the new value [t]\n"
+        "  `length`: .. Generate a random alphanumeric value of this length[t]\n"
+        "  `uuid`: .. Generate a new uuid. Supported values are 1 or 4[t]\n"
+        "  `choices`: .. List of values to pick a random value[t,s]\n"
+        "  `domain`: .. Domain to pick a random record from[o,m]\n"
+        "  `length`: .. Number of records to pick[m]\n"
         "\n"
         "  Additionally for Date or Datetime the specific parts of the value can be\n"
         "  replaced with a constant integer or a dict with `lower` and `upper` value.\n"
         "  Following attributes can be used as keys:\n"
         "    `year`, `month`, `day`, `hour`, `minute`, `second`"
         "\n"
-        "°   Only available for Integer, Float, Date, Datetime, Char, Html, Text or Selection\n"
-        "°°  Only available for Integer, Float, Date or Datetime\n"
-        "°°° Only available for Char, Html, or Text\n"
-        "*   Only available for Char, Html, Text or Selection\n"
-        "**  Only available for Many2one, Many2many\n"
-        "*** Only available for Many2many\n",
+        "Only available for:\n"
+        "[n] Integer, Float, Monetary\n"
+        "[d] Date, Datetime\n"
+        "[t] Char, Html, Text\n"
+        "[s] Selection\n"
+        "[o] Many2one\n"
+        "[n] Many2many\n",
     )
     return parser.parse_known_args(args)
 
@@ -289,7 +290,7 @@ class ActionEnvironment(env.Environment):
           a `domain` filter
         """
         domain = kw.get("domain", [])
-        records = rec.env[rec._fields[name].comodel_name].search(domain)
+        records = rec[name].search(domain)
         if not records:
             return False
         return random.choice(records.ids)
@@ -301,7 +302,7 @@ class ActionEnvironment(env.Environment):
           a `domain` filter. If `length` is specified, return `length` random records.
         """
         domain = kw.get("domain", [])
-        records = rec.env[rec._fields[name].comodel_name].search(domain)
+        records = rec[name].search(domain)
 
         if not records:
             return [(5,)]
