@@ -67,6 +67,18 @@ class ModuleEnvironment(env.Environment):
             )
             script.migrate(env, version)
 
+    def _run_migration_sql(self, db_name, script_name):
+        """Run a migration SQL script by executing the migrate function"""
+        if not os.path.isfile(script_name):
+            return
+
+        with open(script_name, "r") as f:
+            sql = f.read()
+
+        utils.info(f"Executing {script_name} script")
+        with self.env(db_name) as env:
+            env.cr.execute(sql)
+
     def _get_modules(self):
         """Return the list of modules"""
         modes = self.get(base.SECTION, "mode", default=[])

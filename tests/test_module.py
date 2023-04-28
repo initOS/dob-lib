@@ -40,6 +40,25 @@ def test_run_migration(env):
         os.chdir(cur)
 
 
+def test_run_migration_sql(env):
+    cur = os.getcwd()
+    os.chdir("tests/environment/")
+    try:
+        env.env = mock.MagicMock()
+        odoo_env = env.env.return_value.__enter__.return_value = mock.MagicMock()
+        odoo_env["ir.config_parameter"].get_param.return_value = "4.2"
+
+        # Non-existing migration
+        env._run_migration_sql("odoo", "pre_update.sql")
+        odoo_env.cr.execute.assert_not_called()
+
+        # Existing migration
+        env._run_migration_sql("odoo", "post_update.sql")
+        odoo_env.cr.execute.assert_called_once_with("SELECT * FROM sale_order;\n")
+    finally:
+        os.chdir(cur)
+
+
 def test_get_modules(env):
     env.set(base.SECTION, "mode", value="prod")
     assert env._get_modules() == {"normal"}
