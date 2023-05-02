@@ -44,17 +44,18 @@ def test_run_migration_sql(env):
     cur = os.getcwd()
     os.chdir("tests/environment/")
     try:
-        env.env = mock.MagicMock()
-        odoo_env = env.env.return_value.__enter__.return_value = mock.MagicMock()
-        odoo_env["ir.config_parameter"].get_param.return_value = "4.2"
+        odoo = sys.modules["odoo"] = mock.MagicMock()
+        cursor = (
+            odoo.sql_db.db_connect.return_value.cursor.return_value
+        ) = mock.MagicMock()
 
         # Non-existing migration
         env._run_migration_sql("odoo", "pre_update.sql")
-        odoo_env.cr.execute.assert_not_called()
+        cursor.execute.assert_not_called()
 
         # Existing migration
         env._run_migration_sql("odoo", "post_update.sql")
-        odoo_env.cr.execute.assert_called_once_with("SELECT * FROM sale_order;\n")
+        cursor.execute.assert_called_once_with("SELECT * FROM res_partner;\n")
     finally:
         os.chdir(cur)
 

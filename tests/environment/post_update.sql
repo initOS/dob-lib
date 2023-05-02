@@ -1,1 +1,1 @@
-SELECT * FROM sale_order;
+SELECT * FROM res_partner;
