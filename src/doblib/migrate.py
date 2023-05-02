@@ -70,6 +70,7 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
                 utils.info("Run pre-migration scripts")
                 self._run_migration(db_name, f"pre_migrate_{version[0]}")
                 self._run_migration_sql(db_name, f"pre_migrate_{version[0]}.sql")
+
             if not args.skip_migrate:
                 utils.info(f"Running OpenUpgrade migration to Odoo {version}")
                 open_upgrade_args = [

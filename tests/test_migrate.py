@@ -34,7 +34,12 @@ def test_migrate(repos, env):
     env._run_migration_sql = mock.MagicMock(return_value=0)
     env.start = mock.MagicMock(return_value=0)
 
-    args = mock.MagicMock(version=utils.Version(13), skip_premigrate=False, skip_migrate=False, skip_postmigrate=False)
+    args = mock.MagicMock(
+        version=utils.Version(13),
+        skip_premigrate=False,
+        skip_migrate=False,
+        skip_postmigrate=False,
+    )
 
     # Init of odoo isn't possible
     env.migrate(args)
