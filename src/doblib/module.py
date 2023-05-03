@@ -67,6 +67,20 @@ class ModuleEnvironment(env.Environment):
             )
             script.migrate(env, version)
 
+    def _run_migration_sql(self, db_name, script_name):
+        """Run a migration SQL script"""
+        if not os.path.isfile(script_name):
+            return
+
+        # pylint: disable=C0415,E0401
+        import odoo
+
+        utils.info(f"Executing {script_name} script")
+        # Ensure that the database is initialized
+        db = odoo.sql_db.db_connect(db_name)
+        with closing(db.cursor()) as cr, open(script_name, "r") as f:
+            cr.execute(f.read())
+
     def _get_modules(self):
         """Return the list of modules"""
         modes = self.get(base.SECTION, "mode", default=[])

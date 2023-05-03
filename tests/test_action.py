@@ -203,7 +203,9 @@ def test_many2many(env):
     rec.__getitem__.return_value.search = search
 
     with mock.patch("random.sample", lambda x, n: x[:n]):
-        assert env._many2many(rec, "test", domain=[("test", "=", True)]) == [(6, 0, [4])]
+        assert env._many2many(rec, "test", domain=[("test", "=", True)]) == [
+            (6, 0, [4])
+        ]
         assert rec.__getitem__.called_once_with("TEST")
         assert search.called_once_with([("test", "=", True)])
 
