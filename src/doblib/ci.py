@@ -1,18 +1,22 @@
+# -*- coding: utf-8 -*-
 # © 2021 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import glob
 import os
-import shutil
 import sys
 from fnmatch import fnmatch
 
 import isort
 import pytest
 
-from . import base, env, utils
+from . import (
+    base,
+    env,
+    utils,
+)
 
-CI = ("black", "eslint", "flake8", "isort", "prettier", "pylint")
+CI = ("eslint", "flake8", "isort", "prettier", "pylint")
 
 
 def load_ci_arguments(args):
@@ -29,37 +33,9 @@ def load_ci_arguments(args):
 class CIEnvironment(env.Environment):
     """Class to run tests on the environment"""
 
-    def _ci_black(self, options, args, paths, ignores):
-        """Run black"""
-        cmd = [sys.executable, "-m", "black"]
-
-        # Replace pattern matching with regex
-        ignores = [pattern.replace("*", ".*").replace("?", ".") for pattern in ignores]
-
-        # Append black default excludes
-        ignores = ignores + [
-            "\\.git",
-            "\\.hg",
-            "\\.mypy_cache",
-            "\\.tox",
-            "\\.venv",
-            "_build",
-            "buck-out",
-            "build",
-            "dist",
-        ]
-
-        exclude = "(" + "|".join(ignores) + ")"
-        cmd += ["--exclude", exclude]
-
-        if not options.fix:
-            cmd += ["--check", "--diff"]
-
-        return utils.call(*cmd, *args, *paths, pipe=False)
-
     def _ci_eslint(self, options, args, paths, ignores):
         """Run eslint if tool is available"""
-        executable = shutil.which("eslint")
+        executable = utils.which("eslint")
         if not executable:
             utils.error("eslint is not installed")
             return 1
@@ -71,25 +47,27 @@ class CIEnvironment(env.Environment):
         for pattern in ignores:
             cmd += ["--ignore-pattern", pattern]
 
-        return utils.call(*cmd, *args, *paths, pipe=False)
+        cmd.extend(args)
+        cmd.extend(paths)
+        return utils.call(cmd, pipe=False)
 
-    def _ci_flake8(self, options, left, paths, ignores):
+    def _ci_flake8(self, options, args, paths, ignores):
         """Run flake8 tests"""
         cmd = [sys.executable, "-m", "flake8"]
         if ignores:
             cmd.append("--extend-exclude=" + ",".join(ignores))
 
+        cmd.extend(args)
+        cmd.extend(paths)
         return utils.call(
-            *cmd,
-            *left,
-            *paths,
+            cmd,
             pipe=False,
         )
 
     def _ci_isort(self, options, args, paths, ignores):
         """Run isort"""
 
-        cmd = [sys.executable, "-m", "isort"]
+        cmd = ["isort"]
         if not options.fix:
             cmd.extend(("--check", "--diff"))
 
@@ -97,32 +75,34 @@ class CIEnvironment(env.Environment):
             cmd.append("--recursive")
 
         for pattern in ignores:
-            cmd += ["--skip-glob", f"*/{pattern}"]
-            cmd += ["--skip-glob", f"*/{pattern}/*"]
-            cmd += ["--skip-glob", f"{pattern}/*"]
+            cmd += ["--skip-glob", "*/{}".format(pattern)]
+            cmd += ["--skip-glob", "*/{}/*".format(pattern)]
+            cmd += ["--skip-glob", "{}/*".format(pattern)]
 
         if ignores:
             cmd.append("--filter-files")
 
-        return utils.call(*cmd, *args, *paths, pipe=False)
+        cmd.extend(args)
+        cmd.extend(paths)
+        return utils.call(cmd, pipe=False)
 
     def _ci_prettier(self, options, args, paths, ignores):
         """ """
-        executable = shutil.which("prettier")
+        executable = utils.which("prettier")
         if not executable:
             utils.error("prettier is not installed")
             return 1
 
         files = []
         for path in paths:
-            files.extend(glob.glob(f"{path}/**/*.js", recursive=True))
+            files.extend(utils.recursive_glob(path, "*.js"))
 
         files = list(
             filter(
                 lambda path: not any(
-                    fnmatch(path, f"*/{pattern}")
-                    or fnmatch(path, f"*/{pattern}/*")
-                    or fnmatch(path, f"{pattern}/*")
+                    fnmatch(path, "*/{}".format(pattern))
+                    or fnmatch(path, "*/{}/*".format(pattern))
+                    or fnmatch(path, "{}/*".format(pattern))
                     for pattern in ignores
                 ),
                 files,
@@ -136,22 +116,24 @@ class CIEnvironment(env.Environment):
         if options.fix:
             cmd.append("--write")
 
-        return utils.call(*cmd, *args, *files, pipe=False)
+        cmd.extend(args)
+        cmd.extend(files)
+        return utils.call(cmd, pipe=False)
 
     def _ci_pylint(self, options, args, paths, ignores):
         """Run pylint tests for Odoo"""
         files = []
         for path in paths:
-            files.extend(glob.glob(f"{path}/**/*.csv", recursive=True))
-            files.extend(glob.glob(f"{path}/**/*.py", recursive=True))
-            files.extend(glob.glob(f"{path}/**/*.xml", recursive=True))
+            files.extend(utils.recursive_glob(path, "*.csv"))
+            files.extend(utils.recursive_glob(path, "*.py"))
+            files.extend(utils.recursive_glob(path, "*.xml"))
 
         files = list(
             filter(
                 lambda path: not any(
-                    fnmatch(path, f"*/{pattern}")
-                    or fnmatch(path, f"*/{pattern}/*")
-                    or fnmatch(path, f"{pattern}/*")
+                    fnmatch(path, "*/{}".format(pattern))
+                    or fnmatch(path, "*/{}/*".format(pattern))
+                    or fnmatch(path, "{}/*".format(pattern))
                     for pattern in ignores
                 ),
                 files,
@@ -165,20 +147,22 @@ class CIEnvironment(env.Environment):
         if os.path.isfile(".pylintrc"):
             cmd.append("--rcfile=.pylintrc")
 
-        return utils.call(*cmd, *args, *files, pipe=False)
+        cmd.extend(args)
+        cmd.extend(files)
+        return utils.call(cmd, pipe=False)
 
     def ci(self, ci, args=None):
         """Run CI tests"""
         args, left = load_ci_arguments(args or [])
 
         # Always include this script in the tests
-        paths = self.get("odoo", "addons_path", default=[])
-        ignores = self.get("bootstrap", "blacklist", default=[])
-        func = getattr(self, f"_ci_{ci}", None)
+        paths = self.get(["odoo", "addons_path"], default=[])
+        ignores = self.get(["bootstrap", "blacklist"], default=[])
+        func = getattr(self, "_ci_{}".format(ci), None)
         if ci in CI and callable(func):
             return func(args, left, paths, ignores)
 
-        utils.error(f"Unknown CI {ci}")
+        utils.error("Unknown CI {}".format(ci))
         return 1
 
     def test(self, args=None):
@@ -190,24 +174,28 @@ class CIEnvironment(env.Environment):
             return False
 
         # pylint: disable=C0415,E0401
-        import odoo
-        from odoo.tools import config
+        try:
+            from odoo.cli import server
+            from odoo.tools import config
+        except ImportError:
+            from openerp.cli import server
+            from openerp.tools import config
 
         # Append needed parameter
         if self.get(base.SECTION, "coverage"):
-            for path in self.get("odoo", "addons_path", default=[]):
-                args.extend([f"--cov={path}", path])
+            for path in self.get(["odoo", "addons_path"], default=[]):
+                args.extend(["--cov={}".format(path), path])
 
             args += ["--cov-report=html", "--cov-report=term"]
 
         # Load the odoo configuration
         with self._manage():
             config.parse_config(["-c", base.ODOO_CONFIG])
-            odoo.cli.server.report_configuration()
+            server.report_configuration()
             # Pass the arguments to pytest
             sys.argv = sys.argv[:1] + args
             result = pytest.main()
-            if result and result != pytest.ExitCode.NO_TESTS_COLLECTED:
+            if result and result != 5:
                 return result
 
             return 0

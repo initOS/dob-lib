@@ -1,16 +1,22 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
 import sys
-from configparser import ConfigParser
-from tempfile import NamedTemporaryFile, TemporaryDirectory
-from unittest import mock
+from tempfile import (
+    NamedTemporaryFile,
+    mkdtemp,
+)
 
+import mock
 import pytest
-
+from configparser import ConfigParser
 from doblib import base
-from doblib.env import Environment, load_config_arguments
+from doblib.env import (
+    Environment,
+    load_config_arguments,
+)
 
 
 @pytest.fixture
@@ -31,24 +37,24 @@ def test_arguments():
 
 
 def test_configuration(env):
-    assert env.get("local") is True
-    assert env.get("project") is True
-    assert env.get("default") is True
-    assert env.get("main") is True
+    assert env.get(["local"]) is True
+    assert env.get(["project"]) is True
+    assert env.get(["default"]) is True
+    assert env.get(["main"]) is True
 
     # Test if the environment variable is used
-    assert env.get("odoo", "version") == "1x.0"
+    assert env.get(["odoo", "version"]) == "1x.0"
 
     # Test some substitutions
-    assert env.get("substring") == "0.1.2.3.4"
-    assert env.get("dict of lists") == ["1.2.3", {"a": "1.2.3"}, None]
-    assert env.get("list of dicts") == [{3: "1.2.3.4"}, {2: "0.1.2.3"}]
-    assert env.get("list of lists") == [["1.2.3.1.2.3"]]
+    assert env.get(["substring"]) == "0.1.2.3.4"
+    assert env.get(["dict of lists"]) == ["1.2.3", {"a": "1.2.3"}, None]
+    assert env.get(["list of dicts"]) == [{3: "1.2.3.4"}, {2: "0.1.2.3"}]
+    assert env.get(["list of lists"]) == [["1.2.3.1.2.3"]]
 
     # Test the options
-    assert env.opt("testing") == "1.2.3"
-    assert env.opt("to_none", default=42) == 42
-    assert env.opt("unknown", default="not found") == "not found"
+    assert env.opt(["testing"]) == "1.2.3"
+    assert env.opt(["to_none"], default=42) == 42
+    assert env.opt(["unknown"], default="not found") == "not found"
 
 
 def test_configuration_output(env):
@@ -58,16 +64,16 @@ def test_configuration_output(env):
 
 
 def test_configuration_generation(env):
-    with TemporaryDirectory() as dir_name:
-        base.ODOO_CONFIG = f"{dir_name}/odoo.cfg"
-        env.generate_config()
+    dir_name = mkdtemp()
+    base.ODOO_CONFIG = "{}/odoo.cfg".format(dir_name)
+    env.generate_config()
 
-        cp = ConfigParser()
-        cp.read(base.ODOO_CONFIG)
+    cp = ConfigParser()
+    cp.read(base.ODOO_CONFIG)
 
-        assert cp.get("options", "testing") == "1.2.3"
-        assert cp.get("options", "to_none") == ""
-        assert cp.get("additional", "key") == "value"
+    assert cp.get("options", "testing") == "1.2.3"
+    assert cp.get("options", "to_none") == ""
+    assert cp.get("additional", "key") == "value"
 
 
 def test_invalid_extend():
@@ -90,17 +96,17 @@ def test_init_odoo(env):
     assert env._init_odoo() is False
     env._link_modules.assert_not_called()
 
-    with TemporaryDirectory() as dir_name:
-        # Not a dir
-        env.set("bootstrap", "odoo", value=f"{dir_name}/unknown")
-        assert env._init_odoo() is False
-        env._link_modules.assert_not_called()
+    dir_name = mkdtemp()
+    # Not a dir
+    env.set(["bootstrap", "odoo"], value="{}/unknown".format(dir_name))
+    assert env._init_odoo() is False
+    env._link_modules.assert_not_called()
 
-        env.set("bootstrap", "odoo", value=dir_name)
-        assert dir_name not in sys.path
-        assert env._init_odoo() == dir_name
-        assert dir_name in sys.path
-        env._link_modules.assert_called_once()
+    env.set(["bootstrap", "odoo"], value=dir_name)
+    assert dir_name not in sys.path
+    assert env._init_odoo() == dir_name
+    assert dir_name in sys.path
+    env._link_modules.assert_called_once()
 
 
 def test_env(env):
@@ -132,25 +138,25 @@ def test_env(env):
 
 
 def test_link_modules(env):
-    with TemporaryDirectory() as dir_name:
-        os.makedirs(f"{dir_name}/abc")
-        link_path = os.path.join(base.ADDON_PATH, "abc")
+    dir_name = mkdtemp()
+    os.makedirs("{}/abc".format(dir_name))
+    link_path = os.path.join(base.ADDON_PATH, "abc")
 
-        repo = {}
-        env._config = {"repos": {dir_name: repo}}
-        env._link_modules()
-        assert not os.path.islink(link_path)
+    repo = {}
+    env._config = {"repos": {dir_name: repo}}
+    env._link_modules()
+    assert not os.path.islink(link_path)
 
-        with open(f"{dir_name}/abc/__manifest__.py", "w+", encoding="utf-8"):
-            pass
+    with open("{}/abc/__manifest__.py".format(dir_name), "w+"):
+        pass
 
-        env._link_modules()
-        assert os.path.islink(link_path)
+    env._link_modules()
+    assert os.path.islink(link_path)
 
-        repo["modules"] = ["abc"]
-        env._link_modules()
-        assert os.path.islink(link_path)
+    repo["modules"] = ["abc"]
+    env._link_modules()
+    assert os.path.islink(link_path)
 
-        repo["modules"] = ["!abc"]
-        env._link_modules()
-        assert not os.path.islink(link_path)
+    repo["modules"] = ["!abc"]
+    env._link_modules()
+    assert not os.path.islink(link_path)

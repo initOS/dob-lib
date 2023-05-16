@@ -1,12 +1,12 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Ruben Ortlam (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
 import sys
-from unittest import mock
 
+import mock
 import pytest
-
 from doblib import utils
 from doblib.migrate import MigrateEnvironment
 
@@ -23,9 +23,10 @@ def env():
 @mock.patch("doblib.aggregate.get_repos", return_value=[{"cwd": "unknown"}])
 def test_migrate(repos, env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    tools = sys.modules["odoo.tools"] = mock.MagicMock()
-    tools.config.__getitem__.return_value = "odoo"
+    utils.module_mock(odoo, ["odoo.cli", "odoo.tools"])
     sys.modules["odoo.release"] = odoo.release
+
+    odoo.tools.config.__getitem__.return_value = "odoo"
     odoo.release.version_info = (14, 0)
     env.generate_config = mock.MagicMock()
     env._init_odoo = mock.MagicMock(return_value=False)

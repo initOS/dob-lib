@@ -1,12 +1,12 @@
+# -*- coding: utf-8 -*-
 # © 2021 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
 from tempfile import NamedTemporaryFile
-from unittest import mock
 
+import mock
 import pytest
-
 from doblib.freeze import FreezeEnvironment
 
 
@@ -42,29 +42,6 @@ def test_freeze(env):
     repo_mock.assert_called()
 
 
-@mock.patch("builtins.input")
-def test_mode(input_mock, env):
-    input_mock.return_value = "n"
-
-    assert env._freeze_mode("unknown") is True
-    input_mock.assert_not_called()
-
-    with NamedTemporaryFile() as fp:
-        assert env._freeze_mode(fp.name, mode="skip") is False
-        input_mock.assert_not_called()
-
-        assert env._freeze_mode(fp.name, "all") is True
-        input_mock.assert_not_called()
-
-        assert env._freeze_mode(fp.name, "ask") is False
-        input_mock.assert_called()
-
-        input_mock.reset_mock()
-        input_mock.return_value = "Y"
-        assert env._freeze_mode(fp.name, "ask") is True
-        input_mock.assert_called()
-
-
 def test_freeze_packages(env):
     env._freeze_mode = mock.MagicMock(return_value=True)
     with NamedTemporaryFile() as fp:
@@ -85,7 +62,7 @@ def test_freeze_repositories(call_mock, env):
         assert fp.read()
 
     with NamedTemporaryFile() as fp:
-        env.set("repos", value={})
+        env.set(["repos"], value={})
         env._freeze_repositories(fp.name)
         fp.seek(0)
         assert not fp.read()

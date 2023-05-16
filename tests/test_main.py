@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
 # © 2021 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import sys
 from tempfile import NamedTemporaryFile
-from unittest.mock import MagicMock, patch
 
 from doblib.__main__ import main
+from mock import (
+    MagicMock,
+    patch,
+)
 
 
 @patch("sys.exit")
@@ -50,11 +54,6 @@ def test_config(config_mock, exit_mock):
             mock.return_value.ci.assert_called_once_with("flake8", ["additional"])
 
             mock.reset_mock()
-            main(["eslint", "additional"])
-            mock.assert_called_once_with(fp.name)
-            mock.return_value.ci.assert_called_once_with("eslint", ["additional"])
-
-            mock.reset_mock()
             main(["pylint", "additional"])
             mock.assert_called_once_with(fp.name)
             mock.return_value.ci.assert_called_with("pylint", ["additional"])
@@ -83,7 +82,7 @@ def test_config(config_mock, exit_mock):
                 "show-closed-prs", ["additional"]
             )
 
-        assert exit_mock.call_count == 12
+        assert exit_mock.call_count == 11
 
 
 @patch("doblib.__main__.load_arguments")

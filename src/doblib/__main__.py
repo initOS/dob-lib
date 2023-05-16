@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # © 2021 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
@@ -8,10 +9,16 @@ import sys
 from . import utils
 from .action import ActionEnvironment
 from .aggregate import AggregateEnvironment
-from .ci import CI, CIEnvironment
+from .ci import (
+    CI,
+    CIEnvironment,
+)
 from .env import Environment
 from .freeze import FreezeEnvironment
-from .migrate import MigrateEnvironment, load_migrate_arguments
+from .migrate import (
+    MigrateEnvironment,
+    load_migrate_arguments,
+)
 from .module import ModuleEnvironment
 from .run import RunEnvironment
 from .utils import config_logger
@@ -60,23 +67,24 @@ def load_arguments(args):
         "command",
         metavar="command",
         nargs="?",
-        help=f"Command to use. Possible choices: "
-        f"a(ction): Execute pre-defined actions on the database\n"
-        f"c(onfig): Output the aggregated configuration or parts of it\n"
-        f"f(reeze): Freeze the packages and repositories\n"
-        f"g(enerate): Generate the Odoo configuration. This is also part "
-        f"of `init` and `update`\n"
-        f"i(nit): Initialize the repositories\n"
-        f"m(igrate): Run OpenUpgrade to migrate to a new Odoo version\n"
-        f"r(un): Run the Odoo server\n"
-        f"s(hell): Enter the interactive python shell\n"
-        f"t(est): Execute the unittests\n"
-        f"u(pdate): Run the update and migration process\n"
-        f"{', '.join(CI)}: Run the specific CI tool\n"
-        f"show-all-prs: show GitHub pull requests in merge sections. Such "
-        f"pull requests are identified as having a github.com remote and "
-        f"a refs/pull/NNN/head ref in the merge section\n"
-        f"show-closed-prs: show pull requests that are not open anymore",
+        help="Command to use. Possible choices: "
+        "a(ction): Execute pre-defined actions on the database\n"
+        "c(onfig): Output the aggregated configuration or parts of it\n"
+        "f(reeze): Freeze the packages and repositories\n"
+        "g(enerate): Generate the Odoo configuration. This is also part "
+        "of `init` and `update`\n"
+        "i(nit): Initialize the repositories\n"
+        "m(igrate): Run OpenUpgrade to migrate to a new Odoo version\n"
+        "r(un): Run the Odoo server\n"
+        "s(hell): Enter the interactive python shell\n"
+        "t(est): Execute the unittests\n"
+        "u(pdate): Run the update and migration process\n"
+        "{ci}: Run the specific CI tool\n"
+        "show-all-prs: show GitHub pull requests in merge sections. Such "
+        "pull requests are identified as having a github.com remote and "
+        "a refs/pull/NNN/head ref in the merge section\n"
+        "show-closed-prs: show pull requests that are not open anymore"
+        "".format(ci=', '.join(CI)),
         choices=sorted(choices + CI),
     )
     base.add_argument(
@@ -143,7 +151,7 @@ def main(args=None):
     elif args.command in ("m", "migrate"):
         # Run Odoo migration using OpenUpgrade
         migrate_args, left = load_migrate_arguments(left)
-        migrate_cfg = f"odoo.migrate.{migrate_args.version[0]}.yaml"
+        migrate_cfg = "odoo.migrate.{}.yaml".format(migrate_args.version[0])
         sys.exit(MigrateEnvironment(migrate_cfg).migrate(migrate_args))
     elif args.command in ("show-all-prs", "show-closed-prs"):
         sys.exit(AggregateEnvironment(args.cfg).aggregate(args.command, left))

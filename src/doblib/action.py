@@ -1,14 +1,23 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import random
 import string
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 from dateutil.relativedelta import relativedelta
 
-from . import base, env, utils
+from . import (
+    base,
+    env,
+    utils,
+)
 
 ALNUM = string.ascii_letters + string.digits
 
@@ -19,7 +28,7 @@ def load_action_arguments(args, actions=None):
         "action",
         metavar="action",
         choices=actions or (),
-        help=f"Action to run. Possible choices: {','.join(actions)}",
+        help="Action to run. Possible choices: {}".format(",".join(actions)),
     )
     parser.add_argument(
         "steps",
@@ -201,12 +210,12 @@ class ActionEnvironment(env.Environment):
         suffix = kw.get("suffix", "")
         field = kw.get("field", None)
         if isinstance(field, str):
-            return f"{prefix}{rec[field]}{suffix}"
+            return "{}{}{}".format(prefix, rec[field], suffix)
 
         # Randomize the value
         length = kw.get("length", None)
         if isinstance(length, int) and length > 0:
-            return prefix + "".join(random.choices(ALNUM, k=length)) + suffix
+            return prefix + "".join(utils.choices(ALNUM, k=length)) + suffix
 
         # Take a random value from the choices
         choices = kw.get("choices", None)
@@ -336,37 +345,39 @@ class ActionEnvironment(env.Environment):
 
     def _action_delete(self, env, model, domain, item):
         """Runs the delete action"""
-        if model in env:
-            references = item.get("references", {})
-            chunk = item.get("chunk", None)
-            truncate = item.get("truncate", False)
+        if model not in env.registry:
+            return
 
-            if domain and truncate:
-                utils.warn(
-                    "Setting a domain is not possible with truncate. Falling back"
-                )
+        references = item.get("references", {})
+        chunk = item.get("chunk", None)
+        truncate = item.get("truncate", False)
 
-            elif not domain and truncate:
-                table = env[model]._table
+        if domain and truncate:
+            utils.warn(
+                "Setting a domain is not possible with truncate. Falling back"
+            )
 
-                env.cr.execute(f"TRUNCATE {table} CASCADE")
-                return
+        elif not domain and truncate:
+            table = env[model]._table
 
-            self._replace_references(env, references, domain)
-            records = env[model].with_context(active_test=False).search(domain)
+            env.cr.execute("TRUNCATE {} CASCADE".format(table))
+            return
 
-            if records:
-                if chunk:
-                    for i in range(0, len(records), chunk):
-                        records[i : i + chunk].unlink()
-                        env.cr.commit()
-                else:
-                    records.unlink()
+        self._replace_references(env, references, domain)
+        records = env[model].with_context(active_test=False).search(domain)
+
+        if records:
+            if chunk:
+                for i in range(0, len(records), chunk):
+                    records[i : i + chunk].unlink()
+                    env.cr.commit()
+            else:
+                records.unlink()
 
     def _action_update(self, env, model, domain, item):
         """Runs the update action"""
         values = item.get("values", {})
-        if not values or model not in env:
+        if not values or model not in env.registry:
             return
 
         references = item.get("references", {})
@@ -416,7 +427,10 @@ class ActionEnvironment(env.Environment):
 
     def _action_insert(self, env, model, domain, item):
         values = item.get("values", {})
-        if not domain or not values or model not in env or env[model].search(domain):
+        if not domain or not values or model not in env.registry:
+            return
+
+        if env[model].search(domain):
             return
 
         references = item.get("references", {})
@@ -428,23 +442,29 @@ class ActionEnvironment(env.Environment):
 
     def apply_action(self, args=None):
         """Apply in the configuration defined actions on the database"""
-        actions = self.get("actions", default={})
+        actions = self.get(["actions"], default={})
         args, _ = load_action_arguments(args or [], list(actions))
 
         if not self._init_odoo():
             return
 
         # pylint: disable=C0415,E0401
-        import odoo
-        from odoo.tools import config
+        try:
+            from odoo import api
+            from odoo.cli import server
+            from odoo.tools import config
+        except ImportError:
+            from openerp import api
+            from openerp.cli import server
+            from openerp.tools import config
 
         # Load the Odoo configuration
         config.parse_config(["-c", base.ODOO_CONFIG])
-        odoo.cli.server.report_configuration()
+        server.report_configuration()
 
         db_name = config["db_name"]
 
-        utils.info(f"Running {args.action}")
+        utils.info("Running {}".format(args.action))
         with self._manage():
             with self.env(db_name) as env:
                 for name, item in actions[args.action].items():
@@ -456,7 +476,7 @@ class ActionEnvironment(env.Environment):
                     if steps and name not in steps:
                         continue
 
-                    utils.info(f"{args.action.capitalize()} {name}")
+                    utils.info("{} {}".format(args.action.capitalize(), name))
                     model = item.get("model")
                     if not isinstance(model, str):
                         utils.error("Model must be string")
@@ -469,7 +489,7 @@ class ActionEnvironment(env.Environment):
 
                     ctx = env.context.copy()
                     ctx.update(item.get("context") or {})
-                    action_env = odoo.api.Environment(env.cr, env.uid, ctx)
+                    action_env = api.Environment(env.cr, env.uid, ctx)
 
                     act = item.get("action", "update")
                     if act == "update":
@@ -479,4 +499,4 @@ class ActionEnvironment(env.Environment):
                     elif act == "insert":
                         self._action_insert(action_env, model, domain, item)
                     else:
-                        utils.error(f"Undefined action {act}")
+                        utils.error("Undefined action {}".format(act))

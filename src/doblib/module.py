@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
@@ -7,7 +8,11 @@ import os
 import sys
 from contextlib import closing
 
-from . import base, env, utils
+from . import (
+    base,
+    env,
+    utils,
+)
 
 
 def no_flags(x):
@@ -60,7 +65,7 @@ class ModuleEnvironment(env.Environment):
         finally:
             sys.path = path
 
-        utils.info(f"Executing {script.__name__.replace('_', ' ')} script")
+        utils.info("Executing {} script".format(script.__name__.replace('_', ' ')))
         with self.env(db_name) as env:
             version = utils.Version(
                 env["ir.config_parameter"].get_param("db_version", False)
@@ -73,21 +78,24 @@ class ModuleEnvironment(env.Environment):
             return
 
         # pylint: disable=C0415,E0401
-        import odoo
+        try:
+            from odoo import sql_db
+        except ImportError:
+            from openerp import sql_db
 
-        utils.info(f"Executing {script_name} script")
+        utils.info("Executing {} script".format(script_name))
         # Ensure that the database is initialized
-        db = odoo.sql_db.db_connect(db_name)
+        db = sql_db.db_connect(db_name)
         with closing(db.cursor()) as cr, open(script_name, "r") as f:
             cr.execute(f.read())
 
     def _get_modules(self):
         """Return the list of modules"""
-        modes = self.get(base.SECTION, "mode", default=[])
+        modes = self.get([base.SECTION, "mode"], default=[])
         modes = set(modes.split(",") if isinstance(modes, str) else modes)
 
         modules = set()
-        for module in self.get("modules", default=[]):
+        for module in self.get(["modules"], default=[]):
             if isinstance(module, str):
                 modules.add(module)
             elif isinstance(module, dict) and len(module) == 1:
@@ -111,8 +119,12 @@ class ModuleEnvironment(env.Environment):
     def install_all(self, db_name, modules):
         """Install all modules"""
         # pylint: disable=C0415,E0401
-        import odoo
-        from odoo.tools import config
+        try:
+            from odoo.modules import registry
+            from odoo.tools import config
+        except ImportError:
+            from openerp.modules import registry
+            from openerp.tools import config
 
         config["init"] = dict.fromkeys(modules, 1)
         config["update"] = {}
@@ -124,19 +136,23 @@ class ModuleEnvironment(env.Environment):
         elif languages:
             config["load_language"] = languages
 
-        odoo.modules.registry.Registry.new(
-            db_name,
-            update_module=True,
-            force_demo=not without_demo,
-        )
+        kwargs = {"update_module": True, "force_demo": not without_demo}
+        if hasattr(registry.Registry, "new"):
+            registry.Registry.new(db_name, **kwargs)
+        else:
+            registry.RegistryManager.new(db_name, **kwargs)
 
     def update_specific(
         self, db_name, whitelist=None, blacklist=None, installed=False, listed=False
     ):
         """Update all modules"""
         # pylint: disable=C0415,E0401
-        import odoo
-        from odoo.tools import config
+        try:
+            from odoo.modules import registry
+            from odoo.tools import config
+        except ImportError:
+            from openerp.modules import registry
+            from openerp.tools import config
 
         whitelist = set(whitelist or [])
 
@@ -156,7 +172,11 @@ class ModuleEnvironment(env.Environment):
         config["init"] = {}
         config["update"] = dict.fromkeys(modules, 1)
         config["overwrite_existing_translations"] = True
-        odoo.modules.registry.Registry.new(db_name, update_module=True)
+        kwargs = {"update_module": True}
+        if hasattr(registry.Registry, "new"):
+            registry.Registry.new(db_name, **kwargs)
+        else:
+            registry.RegistryManager.new(db_name, **kwargs)
 
     def update_changed(self, db_name, blacklist=None):
         """Update only changed modules"""
@@ -169,10 +189,11 @@ class ModuleEnvironment(env.Environment):
                 # `assert_log_admin_access`. Exceptions occur if an existing module
                 # adds a new field to `res.users` which gets loaded inside of python
                 # but doesn't link to a column in the database
-                utils.info("Initializing the `res.users` models")
-                env.registry.init_models(
-                    env.cr, ["res.partner", "res.users"], env.context
-                )
+                if hasattr(env.registry, "init_models"):
+                    utils.info("Initializing the `res.users` models")
+                    env.registry.init_models(
+                        env.cr, ["res.partner", "res.users"], env.context
+                    )
 
                 model.upgrade_changed_checksum(True)
                 return
@@ -190,22 +211,30 @@ class ModuleEnvironment(env.Environment):
             return
 
         # pylint: disable=C0415,E0401
-        import odoo
-        from odoo.tools import config
+        try:
+            from odoo import sql_db
+            from odoo.cli import server
+            from odoo.modules.db import initialize, is_initialized
+            from odoo.tools import config
+        except ImportError:
+            from openerp import sql_db
+            from openerp.cli import server
+            from openerp.modules.db import initialize, is_initialized
+            from openerp.tools import config
 
         # Load the Odoo configuration
         config.parse_config(["-c", base.ODOO_CONFIG])
-        odoo.cli.server.report_configuration()
+        server.report_configuration()
 
         db_name = config["db_name"]
         with self._manage():
             # Ensure that the database is initialized
-            db = odoo.sql_db.db_connect(db_name)
+            db = sql_db.db_connect(db_name)
             initialized = False
             with closing(db.cursor()) as cr:
-                if not odoo.modules.db.is_initialized(cr):
+                if not is_initialized(cr):
                     utils.info("Initializing the database")
-                    odoo.modules.db.initialize(cr)
+                    initialize(cr)
                     cr.commit()
                     initialized = True
 
@@ -246,7 +275,7 @@ class ModuleEnvironment(env.Environment):
             # Finish everything
             with self.env(db_name) as env:
                 # Set the user passwords if previously initialized
-                users = self.get("odoo", "users", default={})
+                users = self.get(["odoo", "users"], default={})
                 if (initialized or args.passwords) and users:
                     utils.info("Setting user passwords")
                     model = env["res.users"]
@@ -256,5 +285,5 @@ class ModuleEnvironment(env.Environment):
 
                 # Write the version into the database
                 utils.info("Setting database version")
-                version = self.get(base.SECTION, "version", default="0.0")
+                version = self.get([base.SECTION, "version"], default="0.0")
                 env["ir.config_parameter"].set_param("db_version", version)

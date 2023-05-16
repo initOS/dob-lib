@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 

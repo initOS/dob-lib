@@ -1,12 +1,12 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
-from unittest.mock import patch
 
 import pytest
-
 from doblib import utils
+from mock import patch
 
 
 def test_merge():
@@ -73,8 +73,8 @@ def test_config_file(mock):
 
 
 def test_call():
-    output = utils.call("ls")
+    output = utils.call(["ls"])
     assert isinstance(output, str) and output
 
-    output = utils.call("ls", pipe=False)
+    output = utils.call(["ls"], pipe=False)
     assert output == 0

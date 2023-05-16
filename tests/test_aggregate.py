@@ -1,13 +1,16 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
-from queue import Empty
-from unittest import mock
+from Queue import Empty
 
+import mock
 import pytest
-
-from doblib.aggregate import AggregateEnvironment, aggregate_repo
+from doblib.aggregate import (
+    AggregateEnvironment,
+    aggregate_repo,
+)
 
 
 def aggregate_exception(repo, args, sem, err_queue):

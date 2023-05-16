@@ -1,14 +1,21 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
 import sys
-from datetime import date, datetime
-from unittest import mock
+from datetime import (
+    date,
+    datetime,
+)
 
+import mock
 import pytest
-
-from doblib.action import ALNUM, ActionEnvironment
+from doblib import utils
+from doblib.action import (
+    ALNUM,
+    ActionEnvironment,
+)
 
 
 @pytest.fixture
@@ -33,6 +40,7 @@ def odoo_env(module):
     odoo_env_dict = {"test": module}
     odoo_env.__getitem__.side_effect = odoo_env_dict.__getitem__
     odoo_env.__contains__.side_effect = odoo_env_dict.__contains__
+    odoo_env.registry = odoo_env
 
     ref_mock = mock.MagicMock()
     ref_mock.id = 5
@@ -111,7 +119,7 @@ def test_text(env):
     with pytest.raises(KeyError):
         env._text({}, name="name", field="test")
 
-    with mock.patch("random.choices", return_value="abc") as choices:
+    with mock.patch("doblib.utils.choices", return_value="abc") as choices:
         assert (
             env._text({}, name="test", length=5, prefix="0", suffix="def") == "0abcdef"
         )
@@ -291,15 +299,15 @@ def test_action_update(env, odoo_env, module):
     const_model.type = "integer"
     records._fields = {"test": test_model, "const": const_model}
     records.__len__.return_value = 2
-    records.__bool__.return_value = False
     records.__getitem__.return_value = records
+    records.__nonzero__.return_value = False
 
     env._action_update(
         odoo_env, "test", [], {"values": {"test": 42, "unknown": 42}, "chunk": 1000}
     )
     records.write.assert_not_called()
 
-    records.__bool__.return_value = True
+    records.__nonzero__.return_value = True
     env._action_update(
         odoo_env, "test", [], {"values": {"test": 42, "unknown": 42}, "chunk": 1000}
     )
@@ -404,8 +412,7 @@ def test_apply_action(env):
     env.apply_action(["action"])
 
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = mock.MagicMock()
-    sys.modules["odoo.release"] = odoo.release
+    utils.module_mock(odoo, ["odoo.api", "odoo.cli", "odoo.release", "odoo.tools"])
     odoo.release.version_info = (14, 0)
     env._init_odoo.return_value = True
 

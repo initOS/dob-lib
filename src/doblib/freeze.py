@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
@@ -7,7 +8,11 @@ import sys
 
 import yaml
 
-from . import base, env, utils
+from . import (
+    base,
+    env,
+    utils,
+)
 
 
 def load_freeze_arguments(args):
@@ -59,7 +64,7 @@ class FreezeEnvironment(env.Environment):
             return False
 
         if mode == "ask":
-            answer = input(f"Do you want to overwrite the {file}? [y/N] ")
+            answer = input("Do you want to overwrite the {}? [y/N] ".format(file))
             if answer.lower() != "y":
                 return False
 
@@ -69,31 +74,26 @@ class FreezeEnvironment(env.Environment):
         """Freeze the python packages in the versions.txt"""
         if self._freeze_mode(file, mode):
             utils.info("Freezing packages")
-            versions = utils.call(sys.executable, "-m", "pip", "freeze")
-            with open(file, "w+", encoding="utf-8") as fp:
+            versions = utils.call([sys.executable, "-m", "pip", "freeze"])
+            with open(file, "w+") as fp:
                 fp.write(versions)
 
     def _freeze_repositories(self, file, mode="ask"):
         """Freeze the repositories"""
 
         # Get the default merges dict from the configuration
-        version = self.get(base.SECTION, "version", default="0.0")
+        version = self.get([base.SECTION, "version"], default="0.0")
         default_merges = self.get(
-            base.SECTION,
-            "repo",
-            "merges",
-            default=[f"origin {version}"],
+            [base.SECTION, "repo", "merges"],
+            default=["origin {}".format(version)],
         )
 
         # Get the used remotes and commits from the repositoriey
         commits = {}
-        for path, repo in self.get("repos", default={}).items():
+        for path, repo in self.get(["repos"], default={}).items():
             # This will return all branches with "<remote> <commit>" syntax
             output = utils.call(
-                "git",
-                "branch",
-                "-va",
-                "--format=%(refname) %(objectname)",
+                ["git", "branch", "-va", "--format=%(refname) %(objectname)"],
                 cwd=path,
             )
             remotes = dict(line.split() for line in output.splitlines())
@@ -101,9 +101,9 @@ class FreezeEnvironment(env.Environment):
             # Aggregate the used commits from each specified merge
             tmp = []
             for entry in repo.get("merges", default_merges):
-                name = f"refs/remotes/{entry.replace(' ', '/')}"
+                name = "refs/remotes/{}".format(entry.replace(' ', '/'))
                 if name in remotes:
-                    tmp.append(f"{entry.split()[0]} {remotes[name]}")
+                    tmp.append("{} {}".format(entry.split()[0], remotes[name]))
                 else:
                     tmp.append(entry)
 
@@ -116,7 +116,7 @@ class FreezeEnvironment(env.Environment):
         # Output the suggestion in a proper format to allow copy & paste
         if self._freeze_mode(file, mode):
             utils.info("Freezing repositories")
-            with open(file, "w+", encoding="utf-8") as fp:
+            with open(file, "w+") as fp:
                 fp.write(yaml.dump({"repos": commits}))
 
     def freeze(self, args=None):

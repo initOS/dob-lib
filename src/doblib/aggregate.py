@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
@@ -6,14 +7,21 @@ import sys
 import threading
 import traceback
 from multiprocessing import cpu_count
-from queue import Empty, Queue
+from Queue import (
+    Empty,
+    Queue,
+)
 
 from git_aggregator.config import get_repos
 from git_aggregator.main import match_dir
 from git_aggregator.repo import Repo
 from git_aggregator.utils import ThreadNameKeeper
 
-from . import base, env, utils
+from . import (
+    base,
+    env,
+    utils,
+)
 
 
 def aggregate_repo(repo, args, sem, err_queue, mode=None):
@@ -110,10 +118,10 @@ class AggregateEnvironment(env.Environment):
         sem = threading.Semaphore(jobs)
         err_queue = Queue()
 
-        default = self.get(base.SECTION, "repo", default={})
+        default = self.get([base.SECTION, "repo"], default={})
         repos = {
             key: utils.merge(default, value, replace=["merges"])
-            for key, value in self.get("repos", default={}).items()
+            for key, value in self.get(["repos"], default={}).items()
         }
         for repo_dict in get_repos(repos, args.force):
             if not err_queue.empty():

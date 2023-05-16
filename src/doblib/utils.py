@@ -1,11 +1,17 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
+import fnmatch
 import logging
 import os
-from fnmatch import fnmatch
-from subprocess import PIPE, Popen
+import random
+import sys
+from subprocess import (
+    PIPE,
+    Popen,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -19,42 +25,79 @@ def get_config_file():
     return None
 
 
-def call(*cmd, cwd=None, pipe=True):
+def call(cmd, cwd=None, pipe=True):
     """Call a subprocess and return the stdout"""
-    with Popen(
+    proc = Popen(
         cmd,
         cwd=cwd,
         stdout=PIPE if pipe else None,
         universal_newlines=True,
-    ) as proc:
-        output = proc.communicate()[0]
-        if pipe:
-            return output.strip() if output else ""
-        return proc.returncode
+    )
+    output = proc.communicate()[0]
+    if pipe:
+        return output.strip() if output else ""
+    return proc.returncode
+
+
+def which(cmd):
+    return call(["which", cmd])
+
+
+def choices(seq, k):
+    return [random.choice(seq) for _ in range(k)]
+
+
+def recursive_glob(path, pattern):
+    files = []
+    for root, _, filenames in os.walk(path):
+        for filename in fnmatch.filter(filenames, pattern):
+            files.append(os.path.join(root, filename))
+    return files
+
+
+def module_mock(mock, submodules):
+    for submodule in submodules:
+        parts = submodule.split(".")
+        tmp, path = mock, parts[:1]
+        for sub in submodule.split(".")[1:]:
+            tmp = getattr(tmp, sub)
+            path.append(sub)
+            sys.modules[".".join(path)] = tmp
+
+
+def yaml_bool(x):
+    if not isinstance(x, str):
+        return x
+
+    if x.lower() in ("y", "yes", "true", "on"):
+        return True
+    if x.lower() in ("n", "no", "false", "off"):
+        return False
+    return x
 
 
 def info(msg, *args):
     """Output a green colored info message"""
-    _logger.info(f"\x1b[32m{msg % args}\x1b[0m")
+    _logger.info("\x1b[32m{}\x1b[0m".format(msg % args))
 
 
 def warn(msg, *args):
     """Output a yellow colored warning message"""
-    _logger.warning(f"\x1b[33m{msg % args}\x1b[0m")
+    _logger.warning("\x1b[33m{}\x1b[0m".format(msg % args))
 
 
 def error(msg, *args):
     """Output a red colored error"""
-    _logger.error(f"\x1b[31m{msg % args}\x1b[0m")
+    _logger.error("\x1b[31m{}\x1b[0m".format(msg % args))
 
 
 def check_filters(name, whitelist=None, blacklist=None):
     """Check the name against the whitelist and blacklist"""
 
-    if whitelist and not any(fnmatch(name, pat) for pat in whitelist):
+    if whitelist and not any(fnmatch.fnmatch(name, pat) for pat in whitelist):
         return False
 
-    if blacklist and any(fnmatch(name, pat) for pat in blacklist):
+    if blacklist and any(fnmatch.fnmatch(name, pat) for pat in blacklist):
         return False
 
     return True
@@ -63,7 +106,7 @@ def check_filters(name, whitelist=None, blacklist=None):
 def default_parser(command):
     """Return the common parser options"""
     parser = argparse.ArgumentParser(
-        usage=f"%(prog)s {command} [options]",
+        usage="%(prog)s {} [options]".format(command),
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -75,7 +118,7 @@ def default_parser(command):
     return parser
 
 
-def merge(a, b, *, replace=None):
+def merge(a, b, replace=None):
     """Merges dicts and lists from the configuration structure"""
     if isinstance(a, dict) and isinstance(b, dict):
         if not replace:

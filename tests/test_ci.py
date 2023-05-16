@@ -1,13 +1,16 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
 import sys
-from unittest import mock
 
+import mock
 import pytest
-
-from doblib import base
+from doblib import (
+    base,
+    utils,
+)
 from doblib.ci import CIEnvironment
 
 
@@ -25,8 +28,8 @@ def env():
 @mock.patch("pytest.main", return_value=42)
 def test_test(pytest_mock, env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    tools = sys.modules["odoo.tools"] = mock.MagicMock()
-    sys.modules["odoo.release"] = odoo.release
+    utils.module_mock(odoo, ["odoo.cli", "odoo.release", "odoo.tools"])
+
     odoo.release.version_info = (14, 0)
 
     assert env.test() is False
@@ -35,10 +38,10 @@ def test_test(pytest_mock, env):
 
     env._init_odoo = mock.MagicMock(return_value=True)
     assert env.test() == 42
-    tools.config.parse_config.assert_called_once_with(["-c", base.ODOO_CONFIG])
+    odoo.tools.config.parse_config.assert_called_once_with(["-c", base.ODOO_CONFIG])
     pytest_mock.assert_called_once()
 
-    pytest_mock.return_value = pytest.ExitCode.NO_TESTS_COLLECTED
+    pytest_mock.return_value = 5
     assert env.test() == 0
 
 
@@ -51,24 +54,7 @@ def test_ci(env):
 
 
 @mock.patch("doblib.utils.call", return_value=42)
-def test_ci_black(call, env):
-    assert env.ci("black") == 42
-    call.assert_called_once_with(
-        sys.executable,
-        "-m",
-        "black",
-        "--exclude",
-        "(test1.*|test3|\\.git|\\.hg|\\.mypy_cache|"
-        "\\.tox|\\.venv|_build|buck-out|build|dist)",
-        "--check",
-        "--diff",
-        "addons",
-        pipe=False,
-    )
-
-
-@mock.patch("doblib.utils.call", return_value=42)
-@mock.patch("shutil.which", return_value=False)
+@mock.patch("doblib.utils.which", return_value=False)
 def test_ci_eslint(which, call, env):
     assert env.ci("eslint") == 1
     call.assert_not_called()
@@ -76,14 +62,16 @@ def test_ci_eslint(which, call, env):
     which.return_value = "/usr/bin/eslint"
     assert env.ci("eslint", ["--fix"]) == 42
     call.assert_called_once_with(
-        "eslint",
-        "--no-error-on-unmatched-pattern",
-        "--fix",
-        "--ignore-pattern",
-        "test1*",
-        "--ignore-pattern",
-        "test3",
-        "addons",
+        [
+            "eslint",
+            "--no-error-on-unmatched-pattern",
+            "--fix",
+            "--ignore-pattern",
+            "test1*",
+            "--ignore-pattern",
+            "test3",
+            "addons",
+        ],
         pipe=False,
     )
 
@@ -92,11 +80,13 @@ def test_ci_eslint(which, call, env):
 def test_ci_flake8(call, env):
     assert env.ci("flake8") == 42
     call.assert_called_once_with(
-        sys.executable,
-        "-m",
-        "flake8",
-        "--extend-exclude=test1*,test3",
-        "addons",
+        [
+            sys.executable,
+            "-m",
+            "flake8",
+            "--extend-exclude=test1*,test3",
+            "addons",
+        ],
         pipe=False,
     )
 
@@ -105,31 +95,32 @@ def test_ci_flake8(call, env):
 def test_ci_isort(call, env):
     assert env.ci("isort") == 42
     call.assert_called_once_with(
-        sys.executable,
-        "-m",
-        "isort",
-        "--check",
-        "--diff",
-        "--skip-glob",
-        "*/test1*",
-        "--skip-glob",
-        "*/test1*/*",
-        "--skip-glob",
-        "test1*/*",
-        "--skip-glob",
-        "*/test3",
-        "--skip-glob",
-        "*/test3/*",
-        "--skip-glob",
-        "test3/*",
-        "--filter-files",
-        "addons",
+        [
+            "isort",
+            "--check",
+            "--diff",
+            "--recursive",
+            "--skip-glob",
+            "*/test1*",
+            "--skip-glob",
+            "*/test1*/*",
+            "--skip-glob",
+            "test1*/*",
+            "--skip-glob",
+            "*/test3",
+            "--skip-glob",
+            "*/test3/*",
+            "--skip-glob",
+            "test3/*",
+            "--filter-files",
+            "addons",
+        ],
         pipe=False,
     )
 
 
 @mock.patch("doblib.utils.call", return_value=42)
-@mock.patch("shutil.which", return_value=False)
+@mock.patch("doblib.utils.which", return_value=False)
 def test_ci_prettier(which, call, env):
     assert env.ci("prettier") == 1
     call.assert_not_called()
@@ -141,25 +132,27 @@ def test_ci_prettier(which, call, env):
     call.assert_not_called()
 
     with mock.patch(
-        "glob.glob",
+        "doblib.utils.recursive_glob",
         return_value=[
-            "test15/path/file.py",
-            "folder/test123/file.py",
-            "folder/path/test196.py",
-            "test2/path/file.py",
+            "test15/path/file.js",
+            "folder/test123/file.js",
+            "folder/path/test196.js",
+            "test2/path/file.js",
         ],
     ):
         assert env.ci("prettier", ["--fix"]) == 42
         call.assert_called_once_with(
-            "prettier",
-            "--write",
-            "test2/path/file.py",
+            [
+                "prettier",
+                "--write",
+                "test2/path/file.js",
+            ],
             pipe=False,
         )
 
 
 @mock.patch(
-    "glob.glob",
+    "doblib.utils.recursive_glob",
     return_value=[
         "test15/path/file.py",
         "folder/test123/file.py",
@@ -171,26 +164,30 @@ def test_ci_prettier(which, call, env):
 def test_ci_pylint(call, glob, env):
     assert env.ci("pylint") == 42
     call.assert_called_once_with(
-        sys.executable,
-        "-m",
-        "pylint",
-        "--rcfile=.pylintrc",
-        "test2/path/file.py",
-        "test2/path/file.py",
-        "test2/path/file.py",
+        [
+            sys.executable,
+            "-m",
+            "pylint",
+            "--rcfile=.pylintrc",
+            "test2/path/file.py",
+            "test2/path/file.py",
+            "test2/path/file.py",
+        ],
         pipe=False,
     )
 
     call.reset_mock()
     assert env.ci("pylint") == 42
     call.assert_called_once_with(
-        sys.executable,
-        "-m",
-        "pylint",
-        "--rcfile=.pylintrc",
-        "test2/path/file.py",
-        "test2/path/file.py",
-        "test2/path/file.py",
+        [
+            sys.executable,
+            "-m",
+            "pylint",
+            "--rcfile=.pylintrc",
+            "test2/path/file.py",
+            "test2/path/file.py",
+            "test2/path/file.py",
+        ],
         pipe=False,
     )
 

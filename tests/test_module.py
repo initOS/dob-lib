@@ -1,15 +1,21 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import argparse
 import os
 import sys
-from unittest import mock
 
+import mock
 import pytest
-
-from doblib import base
-from doblib.module import ModuleEnvironment, no_flags
+from doblib import (
+    base,
+    utils,
+)
+from doblib.module import (
+    ModuleEnvironment,
+    no_flags,
+)
 
 
 @pytest.fixture
@@ -61,19 +67,19 @@ def test_run_migration_sql(env):
 
 
 def test_get_modules(env):
-    env.set(base.SECTION, "mode", value="prod")
+    env.set([base.SECTION, "mode"], value="prod")
     assert env._get_modules() == {"normal"}
 
-    env.set(base.SECTION, "mode", value="staging")
+    env.set([base.SECTION, "mode"], value="staging")
     assert env._get_modules() == {"normal", "staging", "dev_staging"}
 
-    env.set(base.SECTION, "mode", value="dev")
+    env.set([base.SECTION, "mode"], value="dev")
     assert env._get_modules() == {"normal", "dev", "dev_staging"}
 
-    env.set(base.SECTION, "mode", value="dev,staging")
+    env.set([base.SECTION, "mode"], value="dev,staging")
     assert env._get_modules() == {"normal", "dev", "dev_staging", "staging"}
 
-    env.set("modules", value=[{}])
+    env.set(["modules"], value=[{}])
     with pytest.raises(TypeError):
         env._get_modules()
 
@@ -85,7 +91,7 @@ def test_get_installed_modules(env):
 
 def test_install_all(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = mock.MagicMock()
+    utils.module_mock(odoo, ["odoo.modules", "odoo.tools"])
 
     env.install_all("odoo", ["module"])
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -94,13 +100,13 @@ def test_install_all(env):
         force_demo=False,
     )
 
-    env.set("odoo", "options", "load_language", value=["en_US"])
+    env.set(["odoo", "options", "load_language"], value=["en_US"])
     env.install_all("odoo", ["module"])
 
 
 def test_update_all(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = mock.MagicMock()
+    utils.module_mock(odoo, ["odoo.modules", "odoo.tools"])
 
     env.update_specific("odoo", installed=True)
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -111,7 +117,8 @@ def test_update_all(env):
 
 def test_update_listed(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = mock.MagicMock()
+    utils.module_mock(odoo, ["odoo.modules", "odoo.tools"])
+
     env._get_modules = mock.MagicMock()
 
     env.update_specific("odoo", listed=True)
@@ -142,9 +149,12 @@ def test_update_changed(env):
 def test_update(env):
     # Quite complex and we have to mock plenty of stuff
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    tools = sys.modules["odoo.tools"] = mock.MagicMock()
-    sys.modules["odoo.release"] = odoo.release
-    tools.config.__getitem__.return_value = "odoo"
+    utils.module_mock(
+        odoo,
+        ["odoo.cli", "odoo.modules.db", "odoo.release", "odoo.sql_db", "odoo.tools"],
+    )
+
+    odoo.tools.config.__getitem__.return_value = "odoo"
     odoo.release.version_info = (14, 0)
     env.generate_config = mock.MagicMock()
     env._get_installed_modules = mock.MagicMock()

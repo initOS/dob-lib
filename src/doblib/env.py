@@ -1,16 +1,23 @@
+# -*- coding: utf-8 -*-
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
-import configparser
 import os
 import re
 import shutil
 import sys
-from contextlib import closing, contextmanager
+from contextlib import (
+    closing,
+    contextmanager,
+)
 
+import configparser
 import yaml
 
-from . import base, utils
+from . import (
+    base,
+    utils,
+)
 
 SubstituteRegex = re.compile(r"\$\{(?P<var>(\w|:)+)\}")
 
@@ -38,12 +45,12 @@ class Environment:
         if not all(var):
             raise SyntaxError()
 
-        result = self.get(*var)
+        result = self.get(var)
         return str(result) if sub else result
 
     def _substitute_string(self, line):
         """Substitute variables in strings"""
-        match = SubstituteRegex.fullmatch(line)
+        match = SubstituteRegex.match(r"^{}$".format(line))
         if match:
             return self._substitute(match, False)
         return SubstituteRegex.sub(self._substitute, line)
@@ -82,24 +89,24 @@ class Environment:
         # Include environment variables first for later substitutions
         for env, keys in base.ENVIRONMENT.items():
             if os.environ.get(env):
-                self.set(*keys, value=os.environ[env])
+                self.set(keys, value=os.environ[env])
 
-        options = self.get("odoo", "options", default={})
+        options = self.get(["odoo", "options"], default={})
         for key, value in options.items():
-            options[key] = os.environ.get(f"ODOO_{key.upper()}") or value
+            options[key] = os.environ.get("ODOO_{}".format(key.upper())) or value
 
         # Run the substitution on the configuration
         self._config = self._substitute_dict(self._config)
 
         # Combine the addon paths
-        current = set(self.get("odoo", "addons_path", default=[]))
+        current = set(self.get(["odoo", "addons_path"], default=[]))
         current.add(base.ADDON_PATH)
 
         # Generate the addon paths
         current = set(map(os.path.abspath, current))
-        self.set("odoo", "options", "addons_path", value=current)
+        self.set(["odoo", "options", "addons_path"], value=current)
 
-    def get(self, *key, default=None):
+    def get(self, key, default=None):
         """Get a specific value of the configuration"""
         data = self._config
         try:
@@ -107,15 +114,15 @@ class Environment:
                 data = data[k]
             if data is None:
                 return default
-            return data
+            return utils.yaml_bool(data)
         except KeyError:
             return default
 
-    def opt(self, *key, default=None):
+    def opt(self, key, default=None):
         """Short cut to directly access odoo options"""
-        return self.get("odoo", "options", *key, default=default)
+        return self.get(["odoo", "options"] + list(key), default=default)
 
-    def set(self, *key, value=None):
+    def set(self, key, value=None):
         """Set a specific value of the configuration"""
         data = self._config
         for k in key[:-1]:
@@ -126,11 +133,11 @@ class Environment:
     def _load_config(self, cfg, raise_if_missing=True):
         """Load and process a configuration file"""
         if not os.path.isfile(cfg) and not raise_if_missing:
-            utils.warn(f" * {cfg}")
+            utils.warn(" * {}".format(cfg))
             return
 
-        utils.info(f" * {cfg}")
-        with open(cfg, encoding="utf-8") as fp:
+        utils.info(" * {}".format(cfg))
+        with open(cfg) as fp:
             options = yaml.load(fp, Loader=yaml.FullLoader)
 
         # Load all base configuration files first
@@ -141,7 +148,7 @@ class Environment:
             for e in extend:
                 self._load_config(e)
         elif extend is not None:
-            raise TypeError(f"{base.SECTION}:extend must be str or list")
+            raise TypeError("{}:extend must be str or list".format(base.SECTION))
 
         # Merge the configurations
         self._config = utils.merge(self._config, options, replace=["merges"])
@@ -149,10 +156,11 @@ class Environment:
     def _link_modules(self):
         """Create symlinks to the modules to allow black-/whitelisting"""
         shutil.rmtree(base.ADDON_PATH, True)
-        os.makedirs(base.ADDON_PATH, exist_ok=True)
+        if not os.path.isdir(base.ADDON_PATH):
+            os.makedirs(base.ADDON_PATH)
         utils.info("Linking Odoo modules")
 
-        for repo_src, repo in self.get("repos", default={}).items():
+        for repo_src, repo in self.get(["repos"], default={}).items():
             target = os.path.abspath(repo.get("addon_path", repo_src))
             modules = repo.get("modules", [])
             whitelist = {m for m in modules if not m.startswith("!")}
@@ -161,7 +169,10 @@ class Environment:
             for module in os.listdir(target):
                 path = os.path.join(target, module)
                 # Check if module
-                if not os.path.isfile(os.path.join(path, "__manifest__.py")):
+                if not any(
+                    os.path.isfile(os.path.join(path, manifest))
+                    for manifest in ("__manifest__.py", "__openerp__.py")
+                ):
                     continue
 
                 if utils.check_filters(module, whitelist, blacklist):
@@ -169,9 +180,9 @@ class Environment:
 
     def _init_odoo(self):
         """Initialize Odoo to enable the module import"""
-        path = self.get(base.SECTION, "odoo")
+        path = self.get([base.SECTION, "odoo"])
         if not path:
-            utils.error(f"No {base.SECTION}:odoo defined")
+            utils.error("No {}:odoo defined".format(base.SECTION))
             return False
 
         path = os.path.abspath(path)
@@ -189,12 +200,15 @@ class Environment:
     def env(self, db_name, rollback=False):
         """Create an environment from a registry"""
         # pylint: disable=C0415,E0401
-        import odoo
+        try:
+            from odoo import SUPERUSER_ID, api, registry
+        except ImportError:
+            from openerp import SUPERUSER_ID, api, registry
 
         # Get all installed modules
-        reg = odoo.registry(db_name)
+        reg = registry(db_name)
         with closing(reg.cursor()) as cr:
-            yield odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+            yield api.Environment(cr, SUPERUSER_ID, {})
 
             if rollback:
                 cr.rollback()
@@ -205,13 +219,15 @@ class Environment:
     def _manage(self):
         """Wrap the manage to resolve version differrences"""
         # pylint: disable=import-outside-toplevel
-        import odoo
-        import odoo.release
+        try:
+            from odoo import api, release
+        except ImportError:
+            from openerp import api, release
 
-        if odoo.release.version_info >= (15,):
+        if release.version_info >= (15,):
             yield
         else:
-            with odoo.api.Environment.manage():
+            with api.Environment.manage():
                 yield
 
     def generate_config(self):
@@ -220,7 +236,7 @@ class Environment:
         cp = configparser.ConfigParser()
 
         # Generate the configuration with the sections
-        options = self.get("odoo", "options", default={})
+        options = self.get(["odoo", "options"], default={})
         for key, value in sorted(options.items()):
             if key == "load_language":
                 continue
@@ -240,9 +256,11 @@ class Environment:
             else:
                 cp.set(sec, key, str(value))
 
-        os.makedirs(os.path.dirname(base.ODOO_CONFIG), exist_ok=True)
+        directory = os.path.dirname(base.ODOO_CONFIG)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
         # Write the configuration
-        with open(base.ODOO_CONFIG, "w+", encoding="utf-8") as fp:
+        with open(base.ODOO_CONFIG, "w+") as fp:
             cp.write(fp)
 
     def config(self, args=None):
@@ -250,6 +268,6 @@ class Environment:
         args, _ = load_config_arguments(args or [])
 
         if args.option:
-            return yaml.dump(self.get(*args.option.split(":")))
+            return yaml.dump(self.get(args.option.split(":")))
 
         return yaml.dump(self._config)
