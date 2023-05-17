@@ -164,6 +164,16 @@ class ModuleEnvironment(env.Environment):
         with self.env(db_name, False) as env:
             model = env["ir.module.module"]
             if hasattr(model, "upgrade_changed_checksum"):
+                # Initialize `res.partner` and `res.users` to prevent exceptions
+                # caused by the fetching of user data inside of the decorator
+                # `assert_log_admin_access`. Exceptions occur if an existing module
+                # adds a new field to `res.users` which gets loaded inside of python
+                # but doesn't link to a column in the database
+                utils.info("Initializing the `res.users` models")
+                env.registry.init_models(
+                    env.cr, ["res.partner", "res.users"], env.context
+                )
+
                 model.upgrade_changed_checksum(True)
                 return
 
