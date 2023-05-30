@@ -120,7 +120,7 @@ class Environment:
 
     def opt(self, key, default=None):
         """Short cut to directly access odoo options"""
-        return self.get(["odoo", "options"] + list(key), default=default)
+        return self.get(["odoo", "options"] + [key], default=default)
 
     def set(self, key, value=None):
         """Set a specific value of the configuration"""
