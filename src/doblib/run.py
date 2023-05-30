@@ -6,11 +6,7 @@ import argparse
 import os
 import sys
 
-from . import (
-    base,
-    env,
-    utils,
-)
+from . import base, env, utils
 
 
 def load_shell_arguments(args):
@@ -104,7 +100,6 @@ class RunEnvironment(env.Environment):
         elif debugger == "dev":
             args += ("--dev=all",)
 
-        print(path)
         if os.path.isfile(os.path.join(path, "odoo-bin")):
             cmd = ["odoo-bin", "-c", base.ODOO_CONFIG]
         else:
