@@ -52,9 +52,9 @@ def test_configuration(env):
     assert env.get(["list of lists"]) == [["1.2.3.1.2.3"]]
 
     # Test the options
-    assert env.opt(["testing"]) == "1.2.3"
-    assert env.opt(["to_none"], default=42) == 42
-    assert env.opt(["unknown"], default="not found") == "not found"
+    assert env.opt("testing") == "1.2.3"
+    assert env.opt("to_none", default=42) == 42
+    assert env.opt("unknown", default="not found") == "not found"
 
 
 def test_configuration_output(env):
