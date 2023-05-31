@@ -2,7 +2,6 @@
 # © 2021-2022 Florian Kantelberg (initOS GmbH)
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
-import configparser
 import os
 import re
 import shutil
@@ -12,6 +11,7 @@ from contextlib import (
     contextmanager,
 )
 
+import configparser
 import yaml
 
 from . import (

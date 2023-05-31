@@ -4,7 +4,6 @@
 
 import os
 import sys
-from configparser import ConfigParser
 from tempfile import (
     NamedTemporaryFile,
     mkdtemp,
@@ -12,6 +11,7 @@ from tempfile import (
 
 import mock
 import pytest
+from configparser import ConfigParser
 from doblib import base
 from doblib.env import (
     Environment,

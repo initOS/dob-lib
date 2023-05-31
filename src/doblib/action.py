@@ -428,7 +428,7 @@ class ActionEnvironment(env.Environment):
                     if not dry_run:
                         env.cr.commit()
 
-    def _action_insert(self, env, model, domain, item):
+    def _action_insert(self, env, model, domain, item, dry_run=False):
         values = item.get("values", {})
         if not domain or not values or model not in env.registry:
             return
@@ -500,6 +500,6 @@ class ActionEnvironment(env.Environment):
                     elif act == "delete":
                         self._action_delete(action_env, model, domain, item, dry_run=args.dry_run)
                     elif act == "insert":
-                        self._action_insert(action_env, model, domain, item)
+                        self._action_insert(action_env, model, domain, item, dry_run=args.dry_run)
                     else:
                         utils.error("Undefined action {}".format(act))

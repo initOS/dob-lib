@@ -6,7 +6,11 @@ import argparse
 import os
 import sys
 
-from . import base, env, utils
+from . import (
+    base,
+    env,
+    utils,
+)
 
 
 def load_shell_arguments(args):
