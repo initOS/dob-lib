@@ -334,7 +334,7 @@ class ActionEnvironment(env.Environment):
             else:
                 self._replace_recursively(value[index], replace_dict)
 
-    def _action_delete(self, env, model, domain, item, dry_run=False):
+    def _action_delete(self, env, model, domain, item, *, dry_run=False):
         """Runs the delete action"""
         if model in env:
             references = item.get("references", {})
@@ -364,7 +364,7 @@ class ActionEnvironment(env.Environment):
                 else:
                     records.unlink()
 
-    def _action_update(self, env, model, domain, item, dry_run=False):
+    def _action_update(self, env, model, domain, item, *, dry_run=False):
         """Runs the update action"""
         values = item.get("values", {})
         if not values or model not in env:
@@ -417,7 +417,7 @@ class ActionEnvironment(env.Environment):
                     if not dry_run:
                         env.cr.commit()
 
-    def _action_insert(self, env, model, domain, item, dry_run=False):
+    def _action_insert(self, env, model, domain, item, *, dry_run=False):
         values = item.get("values", {})
         if not domain or not values or model not in env or env[model].search(domain):
             return
