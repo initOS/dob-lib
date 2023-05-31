@@ -104,7 +104,6 @@ class RunEnvironment(env.Environment):
         elif debugger == "dev":
             args += ("--dev=all",)
 
-        print(path)
         if os.path.isfile(os.path.join(path, "odoo-bin")):
             cmd = ["odoo-bin", "-c", base.ODOO_CONFIG]
         else:

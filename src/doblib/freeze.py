@@ -64,7 +64,7 @@ class FreezeEnvironment(env.Environment):
             return False
 
         if mode == "ask":
-            answer = input("Do you want to overwrite the {}? [y/N] ".format(file))
+            answer = raw_input("Do you want to overwrite the {}? [y/N] ".format(file))
             if answer.lower() != "y":
                 return False
 
