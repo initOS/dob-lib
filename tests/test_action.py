@@ -236,6 +236,15 @@ def test_action_delete(call_mock, env, odoo_env, module):
     search.reset_mock()
     odoo_env.reset_mock()
     module.with_context.reset_mock()
+    env._action_delete(odoo_env, "test", domain, {"chunk": 1000}, dry_run=True)
+    module.with_context.assert_called_once_with(active_test=False)
+    search.assert_called_once_with(domain)
+    records.unlink.assert_called_once()
+    odoo_env.cr.commit.assert_not_called()
+
+    search.reset_mock()
+    odoo_env.reset_mock()
+    module.with_context.reset_mock()
     env._action_delete(odoo_env, "test", domain, {"references": refs})
     module.with_context.assert_called_once_with(active_test=False)
     search.assert_called_once_with(domain_resolved)
@@ -335,6 +344,18 @@ def test_action_update(env, odoo_env, module):
     # For each record (2) const and dynamic commit
     assert records.write.call_count == 4
     assert odoo_env.cr.commit.call_count == 4
+
+    records.write.reset_mock()
+    odoo_env.reset_mock()
+    env._action_update(
+        odoo_env,
+        "test",
+        [],
+        {"values": {"test": {"lower": 5, "upper": 5}, "const": 2}, "chunk": 1},
+        dry_run=True,
+    )
+    # For each record (2) const and dynamic commit
+    odoo_env.cr.commit.assert_not_called()
 
 
 def test_action_insert(env, odoo_env, module):
