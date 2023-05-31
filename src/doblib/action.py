@@ -334,7 +334,7 @@ class ActionEnvironment(env.Environment):
             else:
                 self._replace_recursively(value[index], replace_dict)
 
-    def _action_delete(self, env, model, domain, item):
+    def _action_delete(self, env, model, domain, item, *, dry_run=False):
         """Runs the delete action"""
         if model in env:
             references = item.get("references", {})
@@ -359,11 +359,12 @@ class ActionEnvironment(env.Environment):
                 if chunk:
                     for i in range(0, len(records), chunk):
                         records[i : i + chunk].unlink()
-                        env.cr.commit()
+                        if not dry_run:
+                            env.cr.commit()
                 else:
                     records.unlink()
 
-    def _action_update(self, env, model, domain, item):
+    def _action_update(self, env, model, domain, item, *, dry_run=False):
         """Runs the update action"""
         values = item.get("values", {})
         if not values or model not in env:
@@ -395,7 +396,8 @@ class ActionEnvironment(env.Environment):
             if chunk:
                 for i in range(0, len(records), chunk):
                     records[i : i + chunk].write(const)
-                    env.cr.commit()
+                    if not dry_run:
+                        env.cr.commit()
             else:
                 records.write(const)
 
@@ -412,9 +414,10 @@ class ActionEnvironment(env.Environment):
 
                 if chunk and counter >= chunk:
                     counter = 0
-                    env.cr.commit()
+                    if not dry_run:
+                        env.cr.commit()
 
-    def _action_insert(self, env, model, domain, item):
+    def _action_insert(self, env, model, domain, item, *, dry_run=False):
         values = item.get("values", {})
         if not domain or not values or model not in env or env[model].search(domain):
             return
@@ -446,7 +449,7 @@ class ActionEnvironment(env.Environment):
 
         utils.info(f"Running {args.action}")
         with self._manage():
-            with self.env(db_name) as env:
+            with self.env(db_name, rollback=args.dry_run) as env:
                 for name, item in actions[args.action].items():
                     if not item.get("enable", True):
                         continue
@@ -473,10 +476,16 @@ class ActionEnvironment(env.Environment):
 
                     act = item.get("action", "update")
                     if act == "update":
-                        self._action_update(action_env, model, domain, item)
+                        self._action_update(
+                            action_env, model, domain, item, dry_run=args.dry_run
+                        )
                     elif act == "delete":
-                        self._action_delete(action_env, model, domain, item)
+                        self._action_delete(
+                            action_env, model, domain, item, dry_run=args.dry_run
+                        )
                     elif act == "insert":
-                        self._action_insert(action_env, model, domain, item)
+                        self._action_insert(
+                            action_env, model, domain, item, dry_run=args.dry_run
+                        )
                     else:
                         utils.error(f"Undefined action {act}")
