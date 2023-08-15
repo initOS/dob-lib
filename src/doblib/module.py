@@ -130,6 +130,37 @@ class ModuleEnvironment(env.Environment):
             force_demo=not without_demo,
         )
 
+    def check_auto_install(self, db_name):
+        """Install auto installable modules if the dependencies are installed"""
+        states = frozenset(("installed", "to install", "to upgrade"))
+
+        with self.env(db_name, False) as env:
+            domain = [("state", "=", "uninstalled"), ("auto_install", "=", True)]
+            modules = env["ir.module.module"].search(domain)
+            auto_install = {module: module.dependencies_id for module in modules}
+
+            to_install = env["ir.module.module"].browse()
+            new_module = True
+            while new_module:
+                new_module = False
+                for module, dependencies in auto_install.items():
+                    if all(
+                        dep.state in states or dep.depend_id in to_install
+                        for dep in dependencies
+                    ):
+                        to_install |= module
+                        new_module = True
+
+                auto_install = {
+                    mod: deps
+                    for mod, deps in auto_install.items()
+                    if mod not in to_install
+                }
+
+            if to_install:
+                utils.info("Installing auto_install modules")
+                to_install.button_immediate_install()
+
     def update_specific(
         self, db_name, whitelist=None, blacklist=None, installed=False, listed=False
     ):
@@ -221,9 +252,12 @@ class ModuleEnvironment(env.Environment):
                 uninstalled = modules.difference(installed)
 
             # Install all modules
-            utils.info("Installing all modules")
             if uninstalled:
+                utils.info("Installing all modules")
                 self.install_all(db_name, uninstalled)
+
+            # Check for auto install modules
+            self.check_auto_install(db_name)
 
             # Execute the pre update script
             self._run_migration(db_name, "pre_update")
