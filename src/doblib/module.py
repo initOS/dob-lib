@@ -161,6 +161,14 @@ class ModuleEnvironment(env.Environment):
                 utils.info("Installing auto_install modules")
                 to_install.button_immediate_install()
 
+    def update_checksums(self, db_name):
+        """Only update the module checksums in the database"""
+        with self.env(db_name, False) as env:
+            model = env["ir.module.module"]
+            if hasattr(model, "_save_installed_checksums"):
+                utils.info("Updating module checksums")
+                model._save_installed_checksums()
+
     def update_specific(
         self, db_name, whitelist=None, blacklist=None, installed=False, listed=False
     ):
@@ -263,7 +271,9 @@ class ModuleEnvironment(env.Environment):
             self._run_migration(db_name, "pre_update")
 
             # Update all modules which aren't installed before
-            if args.all or args.listed or args.modules:
+            if initialized:
+                self.update_checksums(db_name)
+            elif args.all or args.listed or args.modules:
                 self.update_specific(
                     db_name,
                     whitelist=args.modules,
