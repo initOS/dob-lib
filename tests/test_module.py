@@ -160,7 +160,7 @@ def test_update(env):
     odoo.modules.db.is_initialized.return_value = False
     env.update()
     env._get_installed_modules.assert_not_called()
-    env.update_changed.assert_called_once()
+    env.update_changed.assert_not_called()
 
     odoo.release.version_info = (15,)
     odoo.modules.db.is_initialized.return_value = True
