@@ -18,6 +18,11 @@ SubstituteRegex = re.compile(r"\$\{(?P<var>(\w|:)+)\}")
 def load_config_arguments(args):
     parser = utils.default_parser("config")
     parser.add_argument("option", nargs="?", help="Show only specific information")
+    parser.add_argument(
+        "--modules",
+        action="store_true",
+        help="Show the modules within the environment",
+    )
     return parser.parse_known_args(args)
 
 
@@ -146,6 +151,26 @@ class Environment:
         # Merge the configurations
         self._config = utils.merge(self._config, options, replace=["merges"])
 
+    def _get_modules(self):
+        """Return the list of modules"""
+        modes = self.get(base.SECTION, "mode", default=[])
+        modes = set(modes.split(",") if isinstance(modes, str) else modes)
+
+        modules = set()
+        for module in self.get("modules", default=[]):
+            if isinstance(module, str):
+                modules.add(module)
+            elif isinstance(module, dict) and len(module) == 1:
+                mod, mode = list(module.items())[0]
+                if isinstance(mode, str) and mode in modes:
+                    modules.add(mod)
+                elif isinstance(mode, list) and modes.intersection(mode):
+                    modules.add(mod)
+            else:
+                raise TypeError("modules: must be str or dict of length 1")
+
+        return modules
+
     def _link_modules(self):
         """Create symlinks to the modules to allow black-/whitelisting"""
         shutil.rmtree(base.ADDON_PATH, True)
@@ -248,6 +273,9 @@ class Environment:
     def config(self, args=None):
         """Simply output the rendered configuration file"""
         args, _ = load_config_arguments(args or [])
+
+        if args.modules:
+            return "\n".join(sorted(self._get_modules()))
 
         if args.option:
             return yaml.dump(self.get(*args.option.split(":")))

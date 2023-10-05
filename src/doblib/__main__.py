@@ -104,16 +104,19 @@ def main(args=None):
     args, left = load_arguments(args)
 
     log_level = LOG_LEVELS.get(args.logging, logging.INFO)
+    if args.command in ("c", "config"):
+        # Show the configuration of the environment (skip all non-ERROR logging)
+        config_logger(logging.ERROR)
+        print(Environment(args.cfg).config(left))
+        return
+
     if log_level:
         config_logger(log_level)
 
     if show_help:
         left.append("--help")
 
-    if args.command in ("c", "config"):
-        # Show the configuration of the environment
-        print(Environment(args.cfg).config(left))
-    elif args.command in ("g", "generate"):
+    if args.command in ("g", "generate"):
         # Regenerate the configuration file
         sys.exit(Environment(args.cfg).generate_config())
     elif args.command in ("f", "freeze"):

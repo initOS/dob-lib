@@ -81,26 +81,6 @@ class ModuleEnvironment(env.Environment):
         with closing(db.cursor()) as cr, open(script_name, "r") as f:
             cr.execute(f.read())
 
-    def _get_modules(self):
-        """Return the list of modules"""
-        modes = self.get(base.SECTION, "mode", default=[])
-        modes = set(modes.split(",") if isinstance(modes, str) else modes)
-
-        modules = set()
-        for module in self.get("modules", default=[]):
-            if isinstance(module, str):
-                modules.add(module)
-            elif isinstance(module, dict) and len(module) == 1:
-                mod, mode = list(module.items())[0]
-                if isinstance(mode, str) and mode in modes:
-                    modules.add(mod)
-                elif isinstance(mode, list) and modes.intersection(mode):
-                    modules.add(mod)
-            else:
-                raise TypeError("modules: must be str or dict of length 1")
-
-        return modules
-
     def _get_installed_modules(self, db_name):
         """Return the list of modules which are installed"""
         with self.env(db_name, False) as env:
