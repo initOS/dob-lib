@@ -450,7 +450,7 @@ class ActionEnvironment(env.Environment):
         utils.info(f"Running {args.action}")
         with self._manage():
             with self.env(db_name, rollback=args.dry_run) as env:
-                for name, item in actions[args.action].items():
+                for name, item in sorted(actions[args.action].items()):
                     if not item.get("enable", True):
                         continue
 
