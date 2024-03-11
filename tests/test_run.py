@@ -40,9 +40,11 @@ def test_shell(env):
 
     with NamedTemporaryFile() as fp:
         shell.Shell.reset_mock()
+        console_mock = shell.Shell.return_value.console
         env.shell([fp.name])
         shell.Shell.assert_called_once()
         assert sys.argv == [fp.name]
+        assert console_mock != shell.Shell.return_value.console
 
 
 @mock.patch("doblib.utils.call", return_value=42)
