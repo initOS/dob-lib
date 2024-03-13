@@ -18,8 +18,17 @@ def load_shell_arguments(args):
         default=utils.get_config_file(),
         help="Configuration file to use. Default: %(default)s",
     )
-    parser.add_argument("file", nargs="?", help="File to execute")
+    parser.add_argument("file", default=None, nargs="?", help="File to execute")
     return parser.parse_known_args(args)
+
+
+def wrapped_console(script_file):
+    def console(local_vars):
+        local_vars["__name__"] = "__main__"
+        with open(script_file, "r", encoding="utf-8") as fp:
+            exec(fp.read(), local_vars)
+
+    return console
 
 
 class RunEnvironment(env.Environment):
@@ -34,13 +43,12 @@ class RunEnvironment(env.Environment):
         # pylint: disable=C0415,E0401
         from odoo.cli.shell import Shell
 
-        if args.file:
-            sys.stdin = open(args.file, "r", encoding="utf-8")
-            sys.argv = [args.file] + left
-        else:
-            sys.argv = [""]
-
+        sys.argv = [args.file] + left if args.file else [""]
         shell = Shell()
+
+        if args.file:
+            shell.console = wrapped_console(args.file)
+
         return shell.run(["-c", base.ODOO_CONFIG, "--no-http"])
 
     def start(self, args=None):
