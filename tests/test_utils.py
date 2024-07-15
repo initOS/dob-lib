@@ -5,7 +5,6 @@ import argparse
 from unittest.mock import patch
 
 import pytest
-
 from doblib import utils
 
 
@@ -54,6 +53,7 @@ def test_check_filters():
     assert utils.check_filters("abc", whitelist=["*"])
     assert not utils.check_filters("abc", blacklist=["*"])
     assert not utils.check_filters("abc", whitelist=["a*"], blacklist=["ab*"])
+    assert utils.check_filters("abcd", whitelist=["abc*"], blacklist=["ab*"])
     assert utils.check_filters("aac", whitelist=["a*"], blacklist=["ab*"])
     assert not utils.check_filters("bac", whitelist=["a*"], blacklist=["ab*"])
 

@@ -51,13 +51,21 @@ def error(msg, *args):
 def check_filters(name, whitelist=None, blacklist=None):
     """Check the name against the whitelist and blacklist"""
 
-    if whitelist and not any(fnmatch(name, pat) for pat in whitelist):
-        return False
+    def matches(patterns):
+        return [len(pat.replace("*", "")) for pat in patterns if fnmatch(name, pat)]
 
-    if blacklist and any(fnmatch(name, pat) for pat in blacklist):
-        return False
+    # Per default everything is allowed
+    if not whitelist and not blacklist:
+        return True
 
-    return True
+    whitelist_matches = matches(whitelist or [])
+    blacklist_matches = matches(blacklist or [])
+
+    if whitelist_matches and blacklist_matches:
+        # The most specific pattern wins
+        return max(whitelist_matches) > max(blacklist_matches)
+
+    return whitelist_matches and not blacklist_matches
 
 
 def default_parser(command):
