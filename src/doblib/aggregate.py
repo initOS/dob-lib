@@ -110,11 +110,7 @@ class AggregateEnvironment(env.Environment):
         sem = threading.Semaphore(jobs)
         err_queue = Queue()
 
-        default = self.get(base.SECTION, "repo", default={})
-        repos = {
-            key: utils.merge(default, value, replace=["merges"])
-            for key, value in self.get("repos", default={}).items()
-        }
+        repos = self.get("repos", default={})
         for repo_dict in get_repos(repos, args.force):
             if not err_queue.empty():
                 break
