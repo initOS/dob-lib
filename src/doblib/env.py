@@ -104,6 +104,15 @@ class Environment:
         current = set(map(os.path.abspath, current))
         self.set("odoo", "options", "addons_path", value=current)
 
+        # Apply repos default
+        default = self.get(base.SECTION, "repo", default={})
+        repos = {
+            key: utils.merge(default, value, replace=["merges"])
+            for key, value in self.get("repos", default={}).items()
+        }
+
+        self.set("repos", value=repos)
+
     def get(self, *key, default=None):
         """Get a specific value of the configuration"""
         data = self._config
