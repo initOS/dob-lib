@@ -65,7 +65,7 @@ def check_filters(name, whitelist=None, blacklist=None):
         # The most specific pattern wins
         return max(whitelist_matches) > max(blacklist_matches)
 
-    return whitelist_matches and not blacklist_matches
+    return not blacklist_matches
 
 
 def default_parser(command):

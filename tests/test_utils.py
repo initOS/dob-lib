@@ -56,7 +56,7 @@ def test_check_filters():
     assert not utils.check_filters("abc", whitelist=["a*"], blacklist=["ab*"])
     assert utils.check_filters("abcd", whitelist=["abc*"], blacklist=["ab*"])
     assert utils.check_filters("aac", whitelist=["a*"], blacklist=["ab*"])
-    assert not utils.check_filters("bac", whitelist=["a*"], blacklist=["ab*"])
+    assert utils.check_filters("bac", whitelist=["a*"], blacklist=["ab*"])
 
 
 @patch("os.path.isfile")
