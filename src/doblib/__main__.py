@@ -42,6 +42,7 @@ def load_arguments(args):
         "init",
         "m",
         "migrate",
+        "populate",
         "r",
         "run",
         "s",
@@ -68,6 +69,7 @@ def load_arguments(args):
         f"of `init` and `update`\n"
         f"i(nit): Initialize the repositories\n"
         f"m(igrate): Run OpenUpgrade to migrate to a new Odoo version\n"
+        f"populate: Run Odoo populate to fill the database with data\n"
         f"r(un): Run the Odoo server\n"
         f"s(hell): Enter the interactive python shell\n"
         f"t(est): Execute the unittests\n"
@@ -128,6 +130,9 @@ def main(args=None):
     elif args.command in ("s", "shell"):
         # Start a shell in the environment
         sys.exit(RunEnvironment(args.cfg).shell(left))
+    elif args.command == "populate":
+        # Populate the database
+        sys.exit(RunEnvironment(args.cfg).populate(left))
     elif args.command in ("r", "run"):
         # Start the environment
         sys.exit(RunEnvironment(args.cfg).start(left))

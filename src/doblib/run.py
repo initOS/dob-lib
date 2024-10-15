@@ -51,6 +51,18 @@ class RunEnvironment(env.Environment):
 
         return shell.run(["-c", base.ODOO_CONFIG, "--no-http"])
 
+    def populate(self, args=None):
+        if not args:
+            args = []
+
+        if not self._init_odoo():
+            return False
+
+        # pylint: disable=C0415,E0401
+        from odoo.cli.populate import Populate
+
+        return Populate().run(["-c", base.ODOO_CONFIG, *args])
+
     def start(self, args=None):
         """Start Odoo without wrapper"""
         if not args:
