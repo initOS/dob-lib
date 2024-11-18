@@ -224,9 +224,10 @@ class Environment:
         """Create an environment from a registry"""
         # pylint: disable=C0415,E0401
         import odoo
+        from odoo.modules.registry import Registry
 
         # Get all installed modules
-        reg = odoo.registry(db_name)
+        reg = Registry(db_name)
         with closing(reg.cursor()) as cr:
             yield odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
 
