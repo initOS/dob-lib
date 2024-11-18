@@ -167,16 +167,21 @@ class CIEnvironment(env.Environment):
 
         return utils.call(*cmd, *args, *files, pipe=False)
 
+    def _ci_paths(self):
+        return (
+            self.get("odoo", "addons_path", default=[])
+            + self.get("bootstrap", "ci_path", default=[])
+        )
+
     def ci(self, ci, args=None):
         """Run CI tests"""
         args, left = load_ci_arguments(args or [])
 
         # Always include this script in the tests
-        paths = self.get("odoo", "addons_path", default=[])
         ignores = self.get("bootstrap", "blacklist", default=[])
         func = getattr(self, f"_ci_{ci}", None)
         if ci in CI and callable(func):
-            return func(args, left, paths, ignores)
+            return func(args, left, self._ci_paths(), ignores)
 
         utils.error(f"Unknown CI {ci}")
         return 1
@@ -195,7 +200,7 @@ class CIEnvironment(env.Environment):
 
         # Append needed parameter
         if self.get(base.SECTION, "coverage"):
-            for path in self.get("odoo", "addons_path", default=[]):
+            for path in self._ci_paths():
                 args.extend([f"--cov={path}", path])
 
             args += ["--cov-report=html", "--cov-report=term"]
