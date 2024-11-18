@@ -168,9 +168,8 @@ class CIEnvironment(env.Environment):
         return utils.call(*cmd, *args, *files, pipe=False)
 
     def _ci_paths(self):
-        return (
-            self.get("odoo", "addons_path", default=[])
-            + self.get("bootstrap", "ci_path", default=[])
+        return self.get("odoo", "addons_path", default=[]) + self.get(
+            "bootstrap", "ci_path", default=[]
         )
 
     def ci(self, ci, args=None):
