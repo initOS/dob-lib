@@ -86,6 +86,8 @@ def test_get_installed_modules(env):
 def test_install_all(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.modules"] = mock.MagicMock()
+    sys.modules["odoo.modules.registry"] = mock.MagicMock()
 
     env.install_all("odoo", ["module"])
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -101,6 +103,8 @@ def test_install_all(env):
 def test_update_all(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.modules"] = mock.MagicMock()
+    sys.modules["odoo.modules.registry"] = mock.MagicMock()
 
     env.update_specific("odoo", installed=True)
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -112,6 +116,8 @@ def test_update_all(env):
 def test_update_listed(env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.modules"] = mock.MagicMock()
+    sys.modules["odoo.modules.registry"] = mock.MagicMock()
     env._get_modules = mock.MagicMock()
 
     env.update_specific("odoo", listed=True)
@@ -143,6 +149,8 @@ def test_update(env):
     # Quite complex and we have to mock plenty of stuff
     odoo = sys.modules["odoo"] = mock.MagicMock()
     tools = sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.modules"] = mock.MagicMock()
+    sys.modules["odoo.modules.registry"] = mock.MagicMock()
     sys.modules["odoo.release"] = odoo.release
     tools.config.__getitem__.return_value = "odoo"
     odoo.release.version_info = (14, 0)

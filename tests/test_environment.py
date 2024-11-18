@@ -110,13 +110,15 @@ def test_env(env):
         with env.env("odoo"):
             pass
 
-    odoo = sys.modules["odoo"] = mock.MagicMock()
-    reg = odoo.registry.return_value = mock.MagicMock()
+    sys.modules["odoo"] = mock.MagicMock()
+    sys.modules["odoo.modules"] = mock.MagicMock()
+    registry = sys.modules["odoo.modules.registry"] = mock.MagicMock()
+    reg = registry.Registry.return_value = mock.MagicMock()
     cr = reg.cursor.return_value = mock.MagicMock()
 
     # Test the normal commit
     with env.env("odoo"):
-        odoo.registry.assert_called_once_with("odoo")
+        registry.Registry.assert_called_once_with("odoo")
         cr.commit.assert_not_called()
 
     cr.commit.assert_called_once()

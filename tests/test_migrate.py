@@ -24,6 +24,8 @@ def env():
 def test_migrate(repos, env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
     tools = sys.modules["odoo.tools"] = mock.MagicMock()
+    sys.modules["odoo.modules"] = mock.MagicMock()
+    sys.modules["odoo.modules.registry"] = mock.MagicMock()
     tools.config.__getitem__.return_value = "odoo"
     sys.modules["odoo.release"] = odoo.release
     odoo.release.version_info = (14, 0)
