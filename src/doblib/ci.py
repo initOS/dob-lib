@@ -141,6 +141,12 @@ class CIEnvironment(env.Environment):
         if options.fix:
             cmd.append("--write")
 
+        config_path = self.get(
+            base.SECTION, "prettier", "config", default=".prettierrc.yml"
+        )
+        if os.path.isfile(config_path):
+            cmd.append(f"--config {config_path}")
+
         return utils.call(*cmd, *args, *files, pipe=False)
 
     def _ci_pylint(self, options, args, paths, ignores):
@@ -170,8 +176,9 @@ class CIEnvironment(env.Environment):
             return 0
 
         cmd = [sys.executable, "-m", "pylint"]
-        if os.path.isfile(".pylintrc"):
-            cmd.append("--rcfile=.pylintrc")
+        config_path = self.get(base.SECTION, "pylint", "config", default=".pylintrc")
+        if os.path.isfile(config_path):
+            cmd.append(f"--rcfile={config_path}")
 
         return utils.call(*cmd, *args, *files, pipe=False)
 
