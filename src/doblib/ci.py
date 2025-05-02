@@ -107,17 +107,22 @@ class CIEnvironment(env.Environment):
         return utils.call(*cmd, *args, *paths, pipe=False)
 
     def _ci_prettier(self, options, args, paths, ignores):
-        """ """
+        """Run prettier on supported files"""
         executable = shutil.which("prettier")
         if not executable:
             utils.error("prettier is not installed")
             return 1
 
-        files = []
-        for path in paths:
-            files.extend(glob.glob(f"{path}/**/*.js", recursive=True))
+        files = set()
 
-        files = list(
+        extensions = self.get(
+            base.SECTION, "prettier", "extension", default=["js", "xml"]
+        )
+        for path in paths:
+            for ext in extensions:
+                files.update(glob.glob(f"{path}/**/*.{ext}", recursive=True))
+
+        files = sorted(
             filter(
                 lambda path: not any(
                     fnmatch(path, f"*/{pattern}")
@@ -132,7 +137,7 @@ class CIEnvironment(env.Environment):
         if not files:
             return 0
 
-        cmd = ["prettier"]
+        cmd = ["prettier", "--check"]
         if options.fix:
             cmd.append("--write")
 
@@ -140,13 +145,16 @@ class CIEnvironment(env.Environment):
 
     def _ci_pylint(self, options, args, paths, ignores):
         """Run pylint tests for Odoo"""
-        files = []
-        for path in paths:
-            files.extend(glob.glob(f"{path}/**/*.csv", recursive=True))
-            files.extend(glob.glob(f"{path}/**/*.py", recursive=True))
-            files.extend(glob.glob(f"{path}/**/*.xml", recursive=True))
+        files = set()
 
-        files = list(
+        extensions = self.get(
+            base.SECTION, "pylint", "extension", default=["csv", "py", "xml"]
+        )
+        for path in paths:
+            for ext in extensions:
+                files.update(glob.glob(f"{path}/**/*.{ext}", recursive=True))
+
+        files = sorted(
             filter(
                 lambda path: not any(
                     fnmatch(path, f"*/{pattern}")
@@ -169,7 +177,7 @@ class CIEnvironment(env.Environment):
 
     def _ci_paths(self):
         return self.get("odoo", "addons_path", default=[]) + self.get(
-            "bootstrap", "ci_path", default=[]
+            base.SECTION, "ci_path", default=[]
         )
 
     def ci(self, ci, args=None):
@@ -177,7 +185,7 @@ class CIEnvironment(env.Environment):
         args, left = load_ci_arguments(args or [])
 
         # Always include this script in the tests
-        ignores = self.get("bootstrap", "blacklist", default=[])
+        ignores = self.get(base.SECTION, "blacklist", default=[])
         func = getattr(self, f"_ci_{ci}", None)
         if ci in CI and callable(func):
             return func(args, left, self._ci_paths(), ignores)

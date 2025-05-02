@@ -6,7 +6,6 @@ import sys
 from unittest import mock
 
 import pytest
-
 from doblib import base
 from doblib.ci import CIEnvironment
 
@@ -145,15 +144,16 @@ def test_ci_prettier(which, call, env):
     with mock.patch(
         "glob.glob",
         return_value=[
-            "test15/path/file.py",
-            "folder/test123/file.py",
             "folder/path/test196.py",
+            "folder/test123/file.py",
+            "test15/path/file.py",
             "test2/path/file.py",
         ],
     ):
         assert env.ci("prettier", ["--fix"]) == 42
         call.assert_called_once_with(
             "prettier",
+            "--check",
             "--write",
             "test2/path/file.py",
             pipe=False,
@@ -178,8 +178,6 @@ def test_ci_pylint(call, glob, env):
         "pylint",
         "--rcfile=.pylintrc",
         "test2/path/file.py",
-        "test2/path/file.py",
-        "test2/path/file.py",
         pipe=False,
     )
 
@@ -190,8 +188,6 @@ def test_ci_pylint(call, glob, env):
         "-m",
         "pylint",
         "--rcfile=.pylintrc",
-        "test2/path/file.py",
-        "test2/path/file.py",
         "test2/path/file.py",
         pipe=False,
     )
