@@ -6,6 +6,7 @@ import sys
 from unittest import mock
 
 import pytest
+
 from doblib import base
 from doblib.ci import CIEnvironment
 
