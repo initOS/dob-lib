@@ -115,6 +115,8 @@ class ModuleEnvironment(env.Environment):
         states = frozenset(("installed", "to install", "to upgrade"))
 
         with self.env(db_name, False) as env:
+            countries = env["res.company"].search([]).mapped("country_id")
+
             domain = [("state", "=", "uninstalled"), ("auto_install", "=", True)]
             modules = env["ir.module.module"].search(domain)
             auto_install = {module: module.dependencies_id for module in modules}
@@ -124,6 +126,13 @@ class ModuleEnvironment(env.Environment):
             while new_module:
                 new_module = False
                 for module, dependencies in auto_install.items():
+                    if (
+                        "country_ids" in module._fields
+                        and module.country_ids
+                        and not (module.country_ids & countries)
+                    ):
+                        continue
+
                     if all(
                         dep.state in states or dep.depend_id in to_install
                         for dep in dependencies
