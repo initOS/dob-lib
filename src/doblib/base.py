@@ -15,3 +15,7 @@ ENVIRONMENT = {
     "BOOTSTRAP_MODE": (SECTION, "mode"),
     "BOOTSTRAP_DEBUGGER": (SECTION, "debugger"),
 }
+
+
+class DuplicateModule(Exception):
+    pass

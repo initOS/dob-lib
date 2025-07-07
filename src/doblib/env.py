@@ -186,6 +186,7 @@ class Environment:
         os.makedirs(base.ADDON_PATH, exist_ok=True)
         utils.info("Linking Odoo modules")
 
+        linked_modules = set()
         for repo_src, repo in self.get("repos", default={}).items():
             target = os.path.abspath(repo.get("addon_path", repo_src))
             modules = repo.get("modules", [])
@@ -194,12 +195,23 @@ class Environment:
 
             for module in os.listdir(target):
                 path = os.path.join(target, module)
+                link_path = os.path.join(base.ADDON_PATH, module)
                 # Check if module
                 if not os.path.isfile(os.path.join(path, "__manifest__.py")):
                     continue
 
-                if utils.check_filters(module, whitelist, blacklist):
-                    os.symlink(path, os.path.join(base.ADDON_PATH, module))
+                # Apply whitelist and blacklist
+                if not utils.check_filters(module, whitelist, blacklist):
+                    continue
+
+                # Keep the duplication check to point out setup problems
+                if module in linked_modules:
+                    raise base.DuplicateModule(f"Duplicate module {module!r} found")
+
+                linked_modules.add(module)
+
+                if not os.path.islink(path):
+                    os.symlink(path, link_path)
 
     def _init_odoo(self):
         """Initialize Odoo to enable the module import"""
