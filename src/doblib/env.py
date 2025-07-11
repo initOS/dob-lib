@@ -210,7 +210,7 @@ class Environment:
 
                 linked_modules.add(module)
 
-                if not os.path.islink(path):
+                if not os.path.islink(link_path):
                     os.symlink(path, link_path)
 
     def _init_odoo(self):
