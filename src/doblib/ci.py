@@ -220,6 +220,9 @@ class CIEnvironment(env.Environment):
 
             args += ["--cov-report=html", "--cov-report=term"]
 
+        for ignore_glob in self.get(base.SECTION, "pytest", "ignore", default=[]):
+            args += [f"--ignore-glob={ignore_glob}"]
+
         # Load the odoo configuration
         with self._manage():
             config.parse_config(["-c", base.ODOO_CONFIG])
