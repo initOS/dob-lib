@@ -110,9 +110,10 @@ def test_env(env):
         with env.env("odoo"):
             pass
 
-    sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.modules"] = mock.MagicMock()
-    registry = sys.modules["odoo.modules.registry"] = mock.MagicMock()
+    odoo = sys.modules["odoo"] = mock.MagicMock()
+    sys.modules["odoo.api"] = odoo.api
+    sys.modules["odoo.modules"] = odoo.modules
+    registry = sys.modules["odoo.modules.registry"] = odoo.modules.registry
     reg = registry.Registry.return_value = mock.MagicMock()
     cr = reg.cursor.return_value = mock.MagicMock()
 

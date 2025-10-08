@@ -186,6 +186,13 @@ class Environment:
         os.makedirs(base.ADDON_PATH, exist_ok=True)
         utils.info("Linking Odoo modules")
 
+        path = self.get(base.SECTION, "odoo")
+        if path:
+            base_path = f"{path}/addons/base"
+            link_path = os.path.join(base.ADDON_PATH, "base")
+            if not os.path.islink(link_path):
+                os.symlink(base_path, link_path)
+
         linked_modules = set()
         for repo_src, repo in self.get("repos", default={}).items():
             target = os.path.abspath(repo.get("addon_path", repo_src))
@@ -236,12 +243,18 @@ class Environment:
         """Create an environment from a registry"""
         # pylint: disable=C0415,E0401
         import odoo
+        from odoo.api import Environment
         from odoo.modules.registry import Registry
+
+        try:
+            from odoo.api import SUPERUSER_ID
+        except ImportError:
+            from odoo import SUPERUSER_ID
 
         # Get all installed modules
         reg = Registry(db_name)
         with closing(reg.cursor()) as cr:
-            yield odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+            yield Environment(cr, SUPERUSER_ID, {})
 
             if rollback:
                 cr.rollback()
@@ -254,11 +267,12 @@ class Environment:
         # pylint: disable=import-outside-toplevel
         import odoo
         import odoo.release
+        from odoo.api import Environment
 
         if odoo.release.version_info >= (15,):
             yield
         else:
-            with odoo.api.Environment.manage():
+            with Environment.manage():
                 yield
 
     def generate_config(self):

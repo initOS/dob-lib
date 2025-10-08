@@ -23,10 +23,15 @@ def env():
 @mock.patch("doblib.aggregate.get_repos", return_value=[{"cwd": "unknown"}])
 def test_migrate(repos, env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    tools = sys.modules["odoo.tools"] = mock.MagicMock()
-    sys.modules["odoo.modules"] = mock.MagicMock()
-    sys.modules["odoo.modules.registry"] = mock.MagicMock()
+    tools = sys.modules["odoo.tools"] = odoo.tools
+    sys.modules["odoo.api"] = odoo.api
+    sys.modules["odoo.cli"] = odoo.cli
+    sys.modules["odoo.cli.server"] = odoo.cli.server
+    sys.modules["odoo.modules"] = odoo.modules
+    sys.modules["odoo.modules.db"] = odoo.modules.db
+    sys.modules["odoo.modules.registry"] = odoo.modules.registry
     tools.config.__getitem__.return_value = "odoo"
+    sys.modules["odoo.sql_db"] = odoo.sql_db
     sys.modules["odoo.release"] = odoo.release
     odoo.release.version_info = (14, 0)
     env.generate_config = mock.MagicMock()

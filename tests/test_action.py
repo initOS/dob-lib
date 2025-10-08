@@ -182,8 +182,6 @@ def test_many2one(env):
 
     with mock.patch("random.choice", lambda x: x[0]):
         assert env._many2one(rec, "test", domain=[("test", "=", True)]) == 4
-        assert rec.__getitem__.called_once_with("TEST")
-        assert search.called_once_with([("test", "=", True)])
 
 
 def test_many2many(env):
@@ -206,8 +204,6 @@ def test_many2many(env):
         assert env._many2many(rec, "test", domain=[("test", "=", True)]) == [
             (6, 0, [4])
         ]
-        assert rec.__getitem__.called_once_with("TEST")
-        assert search.called_once_with([("test", "=", True)])
 
         assert env._many2many(rec, "test", length=2) == [(6, 0, [4, 2])]
 
@@ -425,9 +421,12 @@ def test_apply_action(env):
     env.apply_action(["action"])
 
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = mock.MagicMock()
-    sys.modules["odoo.modules"] = mock.MagicMock()
-    sys.modules["odoo.modules.registry"] = mock.MagicMock()
+    sys.modules["odoo.api"] = odoo.api
+    sys.modules["odoo.cli"] = odoo.cli
+    sys.modules["odoo.cli.server"] = odoo.cli.server
+    sys.modules["odoo.tools"] = odoo.tools
+    sys.modules["odoo.modules"] = odoo.modules
+    sys.modules["odoo.modules.registry"] = odoo.modules.registry
     sys.modules["odoo.release"] = odoo.release
     odoo.release.version_info = (14, 0)
     env._init_odoo.return_value = True

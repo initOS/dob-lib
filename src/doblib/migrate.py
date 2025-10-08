@@ -51,13 +51,19 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
 
         # pylint: disable=C0415,E0401
         import odoo
+        import odoo.modules.db
+        import odoo.sql_db
+        from odoo.cli.server import report_configuration
         from odoo.tools import config
 
         # Load the Odoo configuration
         config.parse_config(["-c", base.ODOO_CONFIG])
-        odoo.cli.server.report_configuration()
+        report_configuration()
 
         db_name = config["db_name"]
+        if isinstance(db_name, list) and db_name:
+            db_name = db_name[0]
+
         with self._manage():
             # Ensure that the database is initialized
             db = odoo.sql_db.db_connect(db_name)

@@ -74,6 +74,7 @@ class ModuleEnvironment(env.Environment):
 
         # pylint: disable=C0415,E0401
         import odoo
+        import odoo.sql_db
 
         utils.info(f"Executing {script_name} script")
         # Ensure that the database is initialized
@@ -92,6 +93,8 @@ class ModuleEnvironment(env.Environment):
         """Install all modules"""
         # pylint: disable=C0415,E0401
         import odoo
+        import odoo.release
+        from odoo.modules.registry import Registry
         from odoo.tools import config
 
         config["init"] = dict.fromkeys(modules, 1)
@@ -104,11 +107,11 @@ class ModuleEnvironment(env.Environment):
         elif languages:
             config["load_language"] = languages
 
-        odoo.modules.registry.Registry.new(
-            db_name,
-            update_module=True,
-            force_demo=not without_demo,
-        )
+        kwargs = {"update_module": True}
+        if odoo.release.version_info < (19,):
+            kwargs["force_demo"] = not without_demo
+
+        Registry.new(db_name, **kwargs)
 
     def check_auto_install(self, db_name):
         """Install auto installable modules if the dependencies are installed"""
@@ -164,6 +167,7 @@ class ModuleEnvironment(env.Environment):
         """Update all modules"""
         # pylint: disable=C0415,E0401
         import odoo
+        from odoo.modules.registry import Registry
         from odoo.tools import config
 
         whitelist = set(whitelist or [])
@@ -184,7 +188,7 @@ class ModuleEnvironment(env.Environment):
         config["init"] = {}
         config["update"] = dict.fromkeys(modules, 1)
         config["overwrite_existing_translations"] = True
-        odoo.modules.registry.Registry.new(db_name, update_module=True)
+        Registry.new(db_name, update_module=True)
 
     def update_changed(self, db_name, blacklist=None):
         """Update only changed modules"""
@@ -220,13 +224,19 @@ class ModuleEnvironment(env.Environment):
 
         # pylint: disable=C0415,E0401
         import odoo
+        import odoo.modules.db
+        import odoo.sql_db
+        from odoo.cli.server import report_configuration
         from odoo.tools import config
 
         # Load the Odoo configuration
         config.parse_config(["-c", base.ODOO_CONFIG])
-        odoo.cli.server.report_configuration()
+        report_configuration()
 
         db_name = config["db_name"]
+        if isinstance(db_name, list) and db_name:
+            db_name = db_name[0]
+
         with self._manage():
             # Ensure that the database is initialized
             db = odoo.sql_db.db_connect(db_name)

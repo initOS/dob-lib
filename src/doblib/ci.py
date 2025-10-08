@@ -210,6 +210,7 @@ class CIEnvironment(env.Environment):
 
         # pylint: disable=C0415,E0401
         import odoo
+        from odoo.cli.server import report_configuration
         from odoo.tools import config
 
         # Append needed parameter
@@ -222,7 +223,7 @@ class CIEnvironment(env.Environment):
         # Load the odoo configuration
         with self._manage():
             config.parse_config(["-c", base.ODOO_CONFIG])
-            odoo.cli.server.report_configuration()
+            report_configuration()
             # Pass the arguments to pytest
             sys.argv = sys.argv[:1] + args
             result = pytest.main()

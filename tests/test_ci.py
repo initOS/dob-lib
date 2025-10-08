@@ -25,9 +25,12 @@ def env():
 @mock.patch("pytest.main", return_value=42)
 def test_test(pytest_mock, env):
     odoo = sys.modules["odoo"] = mock.MagicMock()
-    tools = sys.modules["odoo.tools"] = mock.MagicMock()
-    sys.modules["odoo.modules"] = mock.MagicMock()
-    sys.modules["odoo.modules.registry"] = mock.MagicMock()
+    tools = sys.modules["odoo.tools"] = odoo.tools
+    sys.modules["odoo.api"] = odoo.api
+    sys.modules["odoo.cli"] = odoo.cli
+    sys.modules["odoo.cli.server"] = odoo.cli.server
+    sys.modules["odoo.modules"] = odoo.modules
+    sys.modules["odoo.modules.registry"] = odoo.modules.registry
     sys.modules["odoo.release"] = odoo.release
     odoo.release.version_info = (14, 0)
 
