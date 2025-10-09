@@ -7,6 +7,7 @@ import sys
 from unittest import mock
 
 import pytest
+
 from doblib import base
 from doblib.module import ModuleEnvironment, no_flags
 
