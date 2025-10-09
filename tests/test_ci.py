@@ -32,6 +32,8 @@ def test_test(pytest_mock, env):
     sys.modules["odoo.modules"] = odoo.modules
     sys.modules["odoo.modules.registry"] = odoo.modules.registry
     sys.modules["odoo.release"] = odoo.release
+    sys.modules["odoo.tests"] = odoo.tests
+    sys.modules["odoo.tests.common"] = odoo.tests.common
     odoo.release.version_info = (14, 0)
 
     assert env.test() is False
