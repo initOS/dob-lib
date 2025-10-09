@@ -200,6 +200,25 @@ class CIEnvironment(env.Environment):
         utils.error(f"Unknown CI {ci}")
         return 1
 
+    def _install_patches_for_pytest(self):
+        """Apply patches for pytest"""
+        from odoo.tests.common import BaseCase
+
+        if hasattr(BaseCase, "run"):
+            _original_run = BaseCase.run
+
+            def base_case_run(self, result):
+                if not hasattr(result, "wasSuccessful"):
+                    result.wasSuccessful = lambda: not result.had_failure
+                return _original_run(self, result)
+
+            BaseCase.run = base_case_run
+
+        import pytest_odoo
+
+        if hasattr(pytest_odoo, "monkey_patch_resolve_pkg_root_and_module_name"):
+            pytest_odoo.monkey_patch_resolve_pkg_root_and_module_name()
+
     def test(self, args=None):
         """Run tests"""
         if not args:
@@ -212,6 +231,8 @@ class CIEnvironment(env.Environment):
         import odoo
         from odoo.cli.server import report_configuration
         from odoo.tools import config
+
+        self._install_patches_for_pytest()
 
         # Append needed parameter
         if self.get(base.SECTION, "coverage"):
