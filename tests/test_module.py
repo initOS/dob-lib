@@ -7,7 +7,6 @@ import sys
 from unittest import mock
 
 import pytest
-
 from doblib import base
 from doblib.module import ModuleEnvironment, no_flags
 
@@ -19,6 +18,22 @@ def env():
     env = ModuleEnvironment("odoo.local.yaml")
     os.chdir(cur)
     return env
+
+
+def mock_odoo_import():
+    odoo = sys.modules["odoo"] = mock.MagicMock()
+    sys.modules["odoo.tools"] = odoo.tools
+    sys.modules["odoo.release"] = odoo.release = mock.MagicMock(version_info=(18,))
+    sys.modules["odoo.api"] = odoo.api
+    sys.modules["odoo.cli"] = odoo.cli
+    sys.modules["odoo.cli.server"] = odoo.cli.server
+    sys.modules["odoo.tools"] = odoo.tools
+    sys.modules["odoo.modules"] = odoo.modules
+    sys.modules["odoo.modules.db"] = odoo.modules.db
+    sys.modules["odoo.modules.registry"] = odoo.modules.registry
+    sys.modules["odoo.release"] = odoo.release
+    sys.modules["odoo.sql_db"] = odoo.sql_db
+    return odoo
 
 
 def test_run_migration(env):
@@ -85,11 +100,7 @@ def test_get_installed_modules(env):
 
 
 def test_install_all(env):
-    odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.release"] = odoo.release = mock.MagicMock(version_info=(18,))
-    sys.modules["odoo.tools"] = odoo.tools
-    sys.modules["odoo.modules"] = odoo.modules
-    sys.modules["odoo.modules.registry"] = odoo.modules.registry
+    odoo = mock_odoo_import()
 
     env.install_all("odoo", ["module"])
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -103,10 +114,7 @@ def test_install_all(env):
 
 
 def test_update_all(env):
-    odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = odoo.tools
-    sys.modules["odoo.modules"] = odoo.modules
-    sys.modules["odoo.modules.registry"] = odoo.modules.registry
+    odoo = mock_odoo_import()
 
     env.update_specific("odoo", installed=True)
     odoo.modules.registry.Registry.new.assert_called_once_with(
@@ -116,10 +124,7 @@ def test_update_all(env):
 
 
 def test_update_listed(env):
-    odoo = sys.modules["odoo"] = mock.MagicMock()
-    sys.modules["odoo.tools"] = odoo.tools
-    sys.modules["odoo.modules"] = odoo.modules
-    sys.modules["odoo.modules.registry"] = odoo.modules.registry
+    odoo = mock_odoo_import()
     env._get_modules = mock.MagicMock()
 
     env.update_specific("odoo", listed=True)
@@ -149,17 +154,9 @@ def test_update_changed(env):
 
 def test_update(env):
     # Quite complex and we have to mock plenty of stuff
-    odoo = sys.modules["odoo"] = mock.MagicMock()
-    tools = sys.modules["odoo.tools"] = odoo.tools
-    sys.modules["odoo.api"] = odoo.api
-    sys.modules["odoo.cli"] = odoo.cli
-    sys.modules["odoo.cli.server"] = odoo.cli.server
-    sys.modules["odoo.tools"] = odoo.tools
-    sys.modules["odoo.modules"] = odoo.modules
-    sys.modules["odoo.modules.db"] = odoo.modules.db
-    sys.modules["odoo.modules.registry"] = odoo.modules.registry
-    sys.modules["odoo.release"] = odoo.release
-    sys.modules["odoo.sql_db"] = odoo.sql_db
+    odoo = mock_odoo_import()
+    tools = odoo.tools
+
     tools.config.__getitem__.return_value = "odoo"
     odoo.release.version_info = (14, 0)
     env.generate_config = mock.MagicMock()
@@ -196,7 +193,7 @@ def test_update(env):
     env.update_specific.assert_called_once_with(
         "odoo",
         whitelist=["abc", "def"],
-        blacklist={"normal"},
+        blacklist={"abc", "def", "normal"},
         installed=False,
         listed=False,
     )

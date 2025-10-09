@@ -93,7 +93,6 @@ class ModuleEnvironment(env.Environment):
         """Install all modules"""
         # pylint: disable=C0415,E0401
         import odoo
-        import odoo.release
         from odoo.modules.registry import Registry
         from odoo.tools import config
 
@@ -108,8 +107,10 @@ class ModuleEnvironment(env.Environment):
             config["load_language"] = languages
 
         kwargs = {"update_module": True}
-        if odoo.release.version_info < (19,):
+        if self.odoo_version() < (19,):
             kwargs["force_demo"] = not without_demo
+        else:
+            kwargs["install_modules"] = list(modules)
 
         Registry.new(db_name, **kwargs)
 
@@ -186,9 +187,14 @@ class ModuleEnvironment(env.Environment):
             modules.difference_update(blacklist or [])
 
         config["init"] = {}
-        config["update"] = dict.fromkeys(modules, 1)
         config["overwrite_existing_translations"] = True
-        Registry.new(db_name, update_module=True)
+        kwargs = {"update_module": True}
+        if self.odoo_version() < (19,):
+            config["update"] = dict.fromkeys(modules, 1)
+        else:
+            kwargs["upgrade_modules"] = list(modules)
+
+        Registry.new(db_name, **kwargs)
 
     def update_changed(self, db_name, blacklist=None):
         """Update only changed modules"""
@@ -257,6 +263,9 @@ class ModuleEnvironment(env.Environment):
             else:
                 installed = self._get_installed_modules(db_name)
                 modules = self._get_modules()
+                if args.modules:
+                    modules.update(args.modules)
+
                 uninstalled = modules.difference(installed)
 
             # Install all modules

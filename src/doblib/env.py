@@ -236,7 +236,19 @@ class Environment:
             sys.path.append(path)
 
         self._link_modules()
+
+        # Initialize Odoo
+        import odoo
+
+        if self.odoo_version() >= (19,):
+            import odoo.init
+
         return path
+
+    def odoo_version(self):
+        import odoo.release
+
+        return odoo.release.version_info
 
     @contextmanager
     def env(self, db_name, rollback=False):
