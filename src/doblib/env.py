@@ -238,6 +238,8 @@ class Environment:
         self._link_modules()
 
         # Initialize Odoo
+        # ruff: noqa: F401
+        # pylint: disable=C0415,E0401,W0611
         import odoo
 
         if self.odoo_version() >= (19,):
@@ -246,6 +248,7 @@ class Environment:
         return path
 
     def odoo_version(self):
+        # pylint: disable=C0415,E0401
         import odoo.release
 
         return odoo.release.version_info
@@ -253,7 +256,8 @@ class Environment:
     @contextmanager
     def env(self, db_name, rollback=False):
         """Create an environment from a registry"""
-        # pylint: disable=C0415,E0401
+        # pylint: disable=C0415,E0401,W0611
+        # ruff: noqa: F401
         import odoo
         from odoo.api import Environment
         from odoo.modules.registry import Registry
@@ -276,7 +280,8 @@ class Environment:
     @contextmanager
     def _manage(self):
         """Wrap the manage to resolve version differrences"""
-        # pylint: disable=import-outside-toplevel
+        # pylint: disable=C0415,E0401,W0611
+        # ruff: noqa: F401
         import odoo
         import odoo.release
         from odoo.api import Environment

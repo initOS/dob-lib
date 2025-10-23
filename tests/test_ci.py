@@ -136,6 +136,44 @@ def test_ci_isort(call, env):
 
 
 @mock.patch("doblib.utils.call", return_value=42)
+def test_ci_ruff(call, env):
+    assert env.ci("ruff") == 42
+    call.assert_called_once_with(
+        sys.executable,
+        "-m",
+        "ruff",
+        "check",
+        "--no-fix",
+        "--force-exclude",
+        "--exclude",
+        "test1*",
+        "--exclude",
+        "test3",
+        "addons",
+        pipe=False,
+    )
+
+
+@mock.patch("doblib.utils.call", return_value=42)
+def test_ci_ruff_format(call, env):
+    assert env.ci("ruff-format") == 42
+    call.assert_called_once_with(
+        sys.executable,
+        "-m",
+        "ruff",
+        "format",
+        "--force-exclude",
+        "--check",
+        "--exclude",
+        "test1*",
+        "--exclude",
+        "test3",
+        "addons",
+        pipe=False,
+    )
+
+
+@mock.patch("doblib.utils.call", return_value=42)
 @mock.patch("shutil.which", return_value=False)
 def test_ci_prettier(which, call, env):
     assert env.ci("prettier") == 1
@@ -182,7 +220,6 @@ def test_ci_pylint(call, glob, env):
         sys.executable,
         "-m",
         "pylint",
-        "--rcfile=.pylintrc",
         "test2/path/file.py",
         pipe=False,
     )
@@ -193,7 +230,6 @@ def test_ci_pylint(call, glob, env):
         sys.executable,
         "-m",
         "pylint",
-        "--rcfile=.pylintrc",
         "test2/path/file.py",
         pipe=False,
     )

@@ -10,7 +10,7 @@ from doblib.__main__ import main
 
 @patch("sys.exit")
 @patch("doblib.utils.get_config_file")
-def test_config(config_mock, exit_mock):
+def test_config(config_mock, exit_mock):  # pylint: disable=R0915
     with NamedTemporaryFile() as fp:
         config_mock.return_value = fp.name
 

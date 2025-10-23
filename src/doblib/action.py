@@ -35,6 +35,7 @@ def load_action_arguments(args, actions=None):
         default=False,
         help="Run the action as a dry-run and don't commit changes",
     )
+    # ruff: noqa: E501
     parser.add_argument_group(
         "Actions",
         "Database actions are defined under the `actions` section in the configuration "
@@ -366,6 +367,7 @@ class ActionEnvironment(env.Environment):
 
     def _action_update(self, env, model, domain, item, *, dry_run=False):
         """Runs the update action"""
+        # pylint: disable=R0912
         values = item.get("values", {})
         if not values or model not in env:
             return

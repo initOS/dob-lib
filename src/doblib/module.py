@@ -73,13 +73,14 @@ class ModuleEnvironment(env.Environment):
             return
 
         # pylint: disable=C0415,E0401
+        # ruff: noqa: F401
         import odoo
         import odoo.sql_db
 
         utils.info(f"Executing {script_name} script")
         # Ensure that the database is initialized
         db = odoo.sql_db.db_connect(db_name)
-        with closing(db.cursor()) as cr, open(script_name, "r") as f:
+        with closing(db.cursor()) as cr, open(script_name, encoding="utf-8") as f:
             cr.execute(f.read())
 
     def _get_installed_modules(self, db_name):
@@ -91,7 +92,8 @@ class ModuleEnvironment(env.Environment):
 
     def install_all(self, db_name, modules):
         """Install all modules"""
-        # pylint: disable=C0415,E0401
+        # pylint: disable=C0415,E0401,W0611
+        # ruff: noqa: F401
         import odoo
         from odoo.modules.registry import Registry
         from odoo.tools import config
@@ -166,7 +168,8 @@ class ModuleEnvironment(env.Environment):
         self, db_name, whitelist=None, blacklist=None, installed=False, listed=False
     ):
         """Update all modules"""
-        # pylint: disable=C0415,E0401
+        # pylint: disable=C0415,E0401,W0611
+        # ruff: noqa: F401
         import odoo
         from odoo.modules.registry import Registry
         from odoo.tools import config
@@ -219,7 +222,7 @@ class ModuleEnvironment(env.Environment):
         utils.info("The module module_auto_update is needed. Falling back")
         self.update_specific(db_name, blacklist=blacklist, installed=True)
 
-    def update(self, args=None):
+    def update(self, args=None):  # pylint: disable=R0915
         """Install/update Odoo modules"""
         args, _ = load_update_arguments(args or [])
 
@@ -229,6 +232,7 @@ class ModuleEnvironment(env.Environment):
             return
 
         # pylint: disable=C0415,E0401
+        # ruff: noqa: F401
         import odoo
         import odoo.modules.db
         import odoo.sql_db

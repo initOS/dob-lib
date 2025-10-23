@@ -25,7 +25,8 @@ def load_shell_arguments(args):
 def wrapped_console(script_file):
     def console(local_vars):
         local_vars["__name__"] = "__main__"
-        with open(script_file, "r", encoding="utf-8") as fp:
+        with open(script_file, encoding="utf-8") as fp:
+            # pylint: disable=W0122
             exec(fp.read(), local_vars)
 
     return console

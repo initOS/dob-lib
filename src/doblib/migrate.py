@@ -47,7 +47,7 @@ class MigrateEnvironment(AggregateEnvironment, ModuleEnvironment, RunEnvironment
             return retval
 
         if not self._init_odoo():
-            return
+            return 0
 
         # pylint: disable=C0415,E0401
         import odoo

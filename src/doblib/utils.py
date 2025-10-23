@@ -124,6 +124,7 @@ def config_logger(log_level=logging.INFO):
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
+    # pylint: disable=E1101
     for name, logger in logging.root.manager.loggerDict.items():
         if any(name.startswith(x) for x in ("doblib.", "git_aggregator.")):
             logger.propagate = False

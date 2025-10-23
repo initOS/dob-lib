@@ -13,7 +13,7 @@ from git_aggregator.main import match_dir
 from git_aggregator.repo import Repo
 from git_aggregator.utils import ThreadNameKeeper
 
-from . import base, env, utils
+from . import env, utils
 
 
 def aggregate_repo(repo, args, sem, err_queue, mode=None):
@@ -144,6 +144,8 @@ class AggregateEnvironment(env.Environment):
                     break
                 traceback.print_exception(exc_type, exc_obj, exc_trace)
             return 1
+
+        return 0
 
     def init(self, args=None):
         """Initialize the environment using the git-aggregator"""

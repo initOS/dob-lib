@@ -7,12 +7,11 @@ import shutil
 import sys
 from fnmatch import fnmatch
 
-import isort
 import pytest
 
 from . import base, env, utils
 
-CI = ("black", "eslint", "flake8", "isort", "prettier", "pylint")
+CI = ("black", "eslint", "flake8", "isort", "prettier", "pylint", "ruff", "ruff-format")
 
 
 def load_ci_arguments(args):
@@ -31,6 +30,13 @@ class CIEnvironment(env.Environment):
 
     def _ci_black(self, options, args, paths, ignores):
         """Run black"""
+        try:
+            # pylint: disable=C0415,W0611
+            import black
+        except ImportError:
+            utils.error("black is not installed")
+            return 1
+
         cmd = [sys.executable, "-m", "black"]
 
         # Replace pattern matching with regex
@@ -75,6 +81,13 @@ class CIEnvironment(env.Environment):
 
     def _ci_flake8(self, options, left, paths, ignores):
         """Run flake8 tests"""
+        try:
+            # pylint: disable=C0415,E0401,W0611
+            import flake8
+        except ImportError:
+            utils.error("flake8 is not installed")
+            return 1
+
         cmd = [sys.executable, "-m", "flake8"]
         if ignores:
             cmd.append("--extend-exclude=" + ",".join(ignores))
@@ -88,6 +101,12 @@ class CIEnvironment(env.Environment):
 
     def _ci_isort(self, options, args, paths, ignores):
         """Run isort"""
+        try:
+            # pylint: disable=C0415,E0401,W0611
+            import isort
+        except ImportError:
+            utils.error("isort is not installed")
+            return 1
 
         cmd = [sys.executable, "-m", "isort"]
         if not options.fix:
@@ -151,6 +170,13 @@ class CIEnvironment(env.Environment):
 
     def _ci_pylint(self, options, args, paths, ignores):
         """Run pylint tests for Odoo"""
+        try:
+            # pylint: disable=C0415,E0401,W0611
+            import pylint
+        except ImportError:
+            utils.error("pylint is not installed")
+            return 1
+
         files = set()
 
         extensions = self.get(
@@ -182,6 +208,50 @@ class CIEnvironment(env.Environment):
 
         return utils.call(*cmd, *args, *files, pipe=False)
 
+    def _ci_ruff(self, options, args, paths, ignores):
+        try:
+            # pylint: disable=C0415,E0401,W0611
+            import ruff
+        except ImportError:
+            utils.error("ruff is not installed")
+            return 1
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "ruff",
+            "check",
+            "--fix" if options.fix else "--no-fix",
+            "--force-exclude",
+        ]
+        for pattern in ignores:
+            cmd += ["--exclude", pattern]
+
+        return utils.call(*cmd, *args, *paths, pipe=False)
+
+    def _ci_ruff_format(self, options, args, paths, ignores):
+        try:
+            # pylint: disable=C0415,E0401,W0611
+            import ruff
+        except ImportError:
+            utils.error("ruff is not installed")
+            return 1
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "ruff",
+            "format",
+            "--force-exclude",
+        ]
+        if not options.fix:
+            cmd.append("--check")
+
+        for pattern in ignores:
+            cmd += ["--exclude", pattern]
+
+        return utils.call(*cmd, *args, *paths, pipe=False)
+
     def _ci_paths(self):
         return self.get("odoo", "addons_path", default=[]) + self.get(
             base.SECTION, "ci_path", default=[]
@@ -193,8 +263,9 @@ class CIEnvironment(env.Environment):
 
         # Always include this script in the tests
         ignores = self.get(base.SECTION, "blacklist", default=[])
-        func = getattr(self, f"_ci_{ci}", None)
+        func = getattr(self, f"_ci_{ci.replace('-', '_')}", None)
         if ci in CI and callable(func):
+            # pylint: disable=E1102
             return func(args, left, self._ci_paths(), ignores)
 
         utils.error(f"Unknown CI {ci}")
@@ -202,6 +273,7 @@ class CIEnvironment(env.Environment):
 
     def _install_patches_for_pytest(self):
         """Apply patches for pytest"""
+        # pylint: disable=C0415
         from odoo.tests.common import BaseCase
 
         if hasattr(BaseCase, "run"):
@@ -227,7 +299,8 @@ class CIEnvironment(env.Environment):
         if not self._init_odoo():
             return False
 
-        # pylint: disable=C0415,E0401
+        # pylint: disable=C0415,E0401,W0611
+        # ruff: noqa: F401
         import odoo
         from odoo.cli.server import report_configuration
         from odoo.tools import config

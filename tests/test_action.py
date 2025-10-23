@@ -209,7 +209,7 @@ def test_many2many(env):
 
 
 @mock.patch("doblib.utils.warn")
-def test_action_delete(call_mock, env, odoo_env, module):
+def test_action_delete(call_mock, env, odoo_env, module):  # pylint: disable=R0915
     domain = [["abc", "=", 42], ["def", "=", "$value"]]
     refs = {"$value": "reference"}
     domain_resolved = [["abc", "=", 42], ["def", "=", 5]]

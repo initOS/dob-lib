@@ -6,3 +6,58 @@ build-backend = "setuptools.build_meta"
 line-length = 88
 target-version = ['py36', 'py37', 'py38', 'py39', 'py310']
 include = '(\.pyi?$|src|tests)'
+
+[tool.ruff]
+target-version = "py310"
+fix = true
+
+[tool.ruff.lint]
+extend-select = [
+    "B",
+    "C90",
+    "E501",  # line too long (default 88)
+    "I",  # isort
+    "UP",  # pyupgrade
+]
+extend-safe-fixes = ["UP008"]
+exclude = ["setup/*"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 16
+
+[tool.pylint.main]
+ignored-modules = ["dateutil", "git_aggregator", "odoo", "pytest", "pytest_odoo", "yaml"]
+
+[tool.pylint.imports]
+ignored-modules = ["dateutil", "git_aggregator", "odoo", "pytest", "pytest_odoo", "yaml"]
+
+[tool.pylint."messages control"]
+disable = """
+  attribute-defined-outside-init,
+  bad-inline-option,
+  bad-mcs-classmethod-argument,
+  broad-except,
+  deprecated-pragma,
+  duplicate-code,
+  file-ignored,
+  invalid-name,
+  locally-disabled,
+  logging-fstring-interpolation,
+  missing-class-docstring,
+  missing-function-docstring,
+  missing-module-docstring,
+  protected-access,
+  raw-checker-failed,
+  redefined-outer-name,
+  suppressed-message,
+  too-few-public-methods,
+  too-many-arguments,
+  too-many-instance-attributes,
+  too-many-locals,
+  too-many-positional-arguments,
+  too-many-return-statements,
+  unused-argument,
+  use-implicit-booleaness-not-comparison,
+  use-symbolic-message-instead,
+  useless-suppression,
+"""

@@ -97,6 +97,8 @@ def load_arguments(args):
     return parser.parse_known_args(args)
 
 
+# ruff: noqa: C901
+# pylint: disable=R0912
 def main(args=None):
     args = args or sys.argv[1:]
 

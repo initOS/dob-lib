@@ -62,9 +62,9 @@ def test_run_migration_sql(env):
     try:
         odoo = sys.modules["odoo"] = mock.MagicMock()
         sys.modules["odoo.sql_db"] = odoo.sql_db
-        cursor = (
-            odoo.sql_db.db_connect.return_value.cursor.return_value
-        ) = mock.MagicMock()
+        cursor = odoo.sql_db.db_connect.return_value.cursor.return_value = (
+            mock.MagicMock()
+        )
 
         # Non-existing migration
         env._run_migration_sql("odoo", "pre_update.sql")

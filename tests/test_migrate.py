@@ -21,7 +21,7 @@ def env():
 
 
 @mock.patch("doblib.aggregate.get_repos", return_value=[{"cwd": "unknown"}])
-def test_migrate(repos, env):
+def test_migrate(repos, env):  # pylint: disable=R0915
     odoo = sys.modules["odoo"] = mock.MagicMock()
     tools = sys.modules["odoo.tools"] = odoo.tools
     sys.modules["odoo.api"] = odoo.api
