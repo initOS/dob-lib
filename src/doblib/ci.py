@@ -4,6 +4,7 @@
 import glob
 import os
 import shutil
+import signal
 import sys
 from fnmatch import fnmatch
 
@@ -21,6 +22,15 @@ def load_ci_arguments(args):
         action="store_true",
         default=False,
         help="Write the fixes back if supported by the tool",
+    )
+    parser.add_argument(
+        "--no-http",
+        action="store_true",
+        default=False,
+        help="Don't start the HTTP server for pytest tests. Useful to speed up tests",
+    )
+    parser.add_argument(
+        "--no-force-threaded",
     )
     return parser.parse_known_args(args)
 
@@ -291,10 +301,20 @@ class CIEnvironment(env.Environment):
         if hasattr(pytest_odoo, "monkey_patch_resolve_pkg_root_and_module_name"):
             pytest_odoo.monkey_patch_resolve_pkg_root_and_module_name()
 
+    def _pytest_start_server(self):
+        # pylint: disable=C0415,E0401,W0611
+        # ruff: noqa: F401
+        from odoo.service import server
+
+        server.start(preload=[], stop=True)
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+
+        if hasattr(server.server, "http_spawn"):
+            server.server.http_spawn()
+
     def test(self, args=None):
         """Run tests"""
-        if not args:
-            args = []
+        test_args, args = load_ci_arguments(args or [])
 
         if not self._init_odoo():
             return False
@@ -321,6 +341,11 @@ class CIEnvironment(env.Environment):
         with self._manage():
             config.parse_config(["-c", base.ODOO_CONFIG])
             report_configuration()
+
+            if not test_args.no_http:
+                config["workers"] = 0
+                self._pytest_start_server()
+
             # Pass the arguments to pytest
             sys.argv = sys.argv[:1] + args
             result = pytest.main()

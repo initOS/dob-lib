@@ -31,6 +31,8 @@ def test_test(pytest_mock, env):
     sys.modules["odoo.cli.server"] = odoo.cli.server
     sys.modules["odoo.modules"] = odoo.modules
     sys.modules["odoo.modules.registry"] = odoo.modules.registry
+    sys.modules["odoo.service"] = odoo.service
+    sys.modules["odoo.service.server"] = odoo.service.server
     sys.modules["odoo.release"] = odoo.release
     sys.modules["odoo.tests"] = odoo.tests
     sys.modules["odoo.tests.common"] = odoo.tests.common
