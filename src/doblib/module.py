@@ -178,7 +178,7 @@ class ModuleEnvironment(env.Environment):
 
         if installed:
             utils.info("Updating all modules")
-            modules = ["all"]
+            modules = ["base"]
         elif listed:
             utils.info("Updating listed modules")
             modules = self._get_modules()
