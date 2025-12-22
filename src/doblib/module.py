@@ -254,8 +254,7 @@ class ModuleEnvironment(env.Environment):
             with closing(db.cursor()) as cr:
                 if not odoo.modules.db.is_initialized(cr):
                     utils.info("Initializing the database")
-                    odoo.modules.db.initialize(cr)
-                    cr.commit()
+                    self.install_all(db_name, ["base"])
                     initialized = True
 
             # Execute the pre install script
