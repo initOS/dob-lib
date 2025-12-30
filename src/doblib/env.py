@@ -245,6 +245,14 @@ class Environment:
         if self.odoo_version() >= (19,):
             import odoo.init
 
+            # Odoo 19.0 automatically sets the addons/ folder using the
+            # `addons_community_dir` property of the config as a path for addons.
+            # This bypasses the blacklisting/whitelisting of modules for CE modules
+            # entirely. Just set it to the ADDON_PATH where every module gets a symlink
+            from odoo.tools.config import configmanager
+
+            configmanager.addons_community_dir = base.ADDON_PATH
+
         return path
 
     def odoo_version(self):
