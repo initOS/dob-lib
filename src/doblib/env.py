@@ -262,7 +262,7 @@ class Environment:
         return odoo.release.version_info
 
     @contextmanager
-    def env(self, db_name, rollback=False):
+    def env(self, db_name, rollback=False, minimal=False):
         """Create an environment from a registry"""
         # pylint: disable=C0415,E0401,W0611
         # ruff: noqa: F401
@@ -278,7 +278,19 @@ class Environment:
         # Get all installed modules
         reg = Registry(db_name)
         with closing(reg.cursor()) as cr:
-            yield Environment(cr, SUPERUSER_ID, {})
+            uid = SUPERUSER_ID
+            env = Environment(cr, uid, {})
+
+            if minimal:
+                # Prevent prefetching fields when creating a context
+                ctx = (
+                    Environment(cr, uid, {})["res.users"]
+                    .with_context(prefetch_fields=False)
+                    .context_get()
+                )
+                env = Environment(cr, uid, ctx)
+
+            yield env
 
             if rollback:
                 cr.rollback()

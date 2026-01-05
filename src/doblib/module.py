@@ -61,7 +61,7 @@ class ModuleEnvironment(env.Environment):
             sys.path = path
 
         utils.info(f"Executing {script.__name__.replace('_', ' ')} script")
-        with self.env(db_name) as env:
+        with self.env(db_name, minimal=True) as env:
             version = utils.Version(
                 env["ir.config_parameter"].get_param("db_version", False)
             )
@@ -85,7 +85,7 @@ class ModuleEnvironment(env.Environment):
 
     def _get_installed_modules(self, db_name):
         """Return the list of modules which are installed"""
-        with self.env(db_name, False) as env:
+        with self.env(db_name, False, minimal=True) as env:
             domain = [("state", "=", "installed")]
             installed = env["ir.module.module"].search(domain).mapped("name")
             return set(installed).union(["base"])
@@ -120,7 +120,7 @@ class ModuleEnvironment(env.Environment):
         """Install auto installable modules if the dependencies are installed"""
         states = frozenset(("installed", "to install", "to upgrade"))
 
-        with self.env(db_name, False) as env:
+        with self.env(db_name, False, minimal=True) as env:
             countries = env["res.company"].search([]).mapped("country_id")
 
             domain = [("state", "=", "uninstalled"), ("auto_install", "=", True)]
@@ -158,7 +158,7 @@ class ModuleEnvironment(env.Environment):
 
     def update_checksums(self, db_name):
         """Only update the module checksums in the database"""
-        with self.env(db_name, False) as env:
+        with self.env(db_name, False, minimal=True) as env:
             model = env["ir.module.module"]
             if hasattr(model, "_save_installed_checksums"):
                 utils.info("Updating module checksums")
@@ -202,7 +202,7 @@ class ModuleEnvironment(env.Environment):
     def update_changed(self, db_name, blacklist=None):
         """Update only changed modules"""
         utils.info("Updating changed modules")
-        with self.env(db_name, False) as env:
+        with self.env(db_name, False, minimal=True) as env:
             model = env["ir.module.module"]
             if hasattr(model, "upgrade_changed_checksum"):
                 # Initialize `res.company`, `res.partner` and `res.users` to prevent
