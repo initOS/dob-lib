@@ -174,7 +174,7 @@ class CIEnvironment(env.Environment):
             base.SECTION, "prettier", "config", default=".prettierrc.yml"
         )
         if os.path.isfile(config_path):
-            cmd.append(f"--config {config_path}")
+            cmd += ["--config", f"{config_path}"]
 
         return utils.call(*cmd, *args, *files, pipe=False)
 
