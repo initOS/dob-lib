@@ -85,8 +85,8 @@ class RunEnvironment(env.Environment):
             sys.executable,
             *debug_cmd,
             "odoo-bin",
+            *args,
             "-c",
             base.ODOO_CONFIG,
-            *args,
             cwd=path,
         )
