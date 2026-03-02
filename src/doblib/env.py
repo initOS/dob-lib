@@ -283,11 +283,10 @@ class Environment:
 
             if minimal:
                 # Prevent prefetching fields when creating a context
-                ctx = (
-                    Environment(cr, uid, {})["res.users"]
-                    .with_context(prefetch_fields=False)
-                    .context_get()
-                )
+                ctx_prefetch = {"prefetch_fields": False}
+                ctx = Environment(cr, uid, ctx_prefetch)["res.users"].context_get()
+                ctx = dict(ctx)
+                ctx.update(ctx_prefetch)
                 env = Environment(cr, uid, ctx)
 
             yield env
