@@ -279,18 +279,14 @@ class Environment:
         reg = Registry(db_name)
         with closing(reg.cursor()) as cr:
             uid = SUPERUSER_ID
-            env = Environment(cr, uid, {})
+            ctx = {}
 
             if minimal:
                 # Prevent prefetching fields when creating a context
-                ctx = (
-                    Environment(cr, uid, {})["res.users"]
-                    .with_context(prefetch_fields=False)
-                    .context_get()
-                )
-                env = Environment(cr, uid, ctx)
+                ctx["prefetch_fields"] = False
+                ctx.update(Environment(cr, uid, ctx)["res.users"].context_get())
 
-            yield env
+            yield Environment(cr, uid, ctx)
 
             if rollback:
                 cr.rollback()
