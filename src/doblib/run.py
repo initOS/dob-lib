@@ -89,4 +89,5 @@ class RunEnvironment(env.Environment):
             "-c",
             base.ODOO_CONFIG,
             cwd=path,
+            pipe=False,
         )
