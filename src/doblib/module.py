@@ -211,7 +211,7 @@ class ModuleEnvironment(env.Environment):
         utils.info("The module module_auto_update is needed. Falling back")
         self.update_specific(db_name, blacklist=blacklist, installed=True)
 
-    def update(self, args=None):  # pylint: disable=R0915
+    def update(self, args=None):  # pylint: disable=R0912,R0915
         """Install/update Odoo modules"""
         args, _ = load_update_arguments(args or [])
 
@@ -302,4 +302,7 @@ class ModuleEnvironment(env.Environment):
                 # Write the version into the database
                 utils.info("Setting database version")
                 version = self.get(base.SECTION, "version", default="0.0")
-                env["ir.config_parameter"].set_param("db_version", version)
+                if self.odoo_version() < (20,):
+                    env["ir.config_parameter"].set_param("db_version", version)
+                else:
+                    env["ir.config_parameter"].set_str("db_version", version)
