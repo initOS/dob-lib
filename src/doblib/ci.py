@@ -339,7 +339,8 @@ class CIEnvironment(env.Environment):
 
         # Load the odoo configuration
         with self._manage():
-            config.parse_config(["-c", base.ODOO_CONFIG])
+            kw = {"setup_logging": True} if self.odoo_version() > (18,) else {}
+            config.parse_config(["-c", base.ODOO_CONFIG], **kw)
             report_configuration()
 
             if not test_args.no_http:

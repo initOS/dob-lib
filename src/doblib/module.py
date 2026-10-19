@@ -229,7 +229,8 @@ class ModuleEnvironment(env.Environment):
         from odoo.tools import config
 
         # Load the Odoo configuration
-        config.parse_config(["-c", base.ODOO_CONFIG])
+        kw = {"setup_logging": True} if self.odoo_version() > (18,) else {}
+        config.parse_config(["-c", base.ODOO_CONFIG], **kw)
         report_configuration()
 
         db_name = config["db_name"]

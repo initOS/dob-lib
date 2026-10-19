@@ -445,6 +445,8 @@ class ActionEnvironment(env.Environment):
         from odoo.tools import config
 
         # Load the Odoo configuration
+        kw = {"setup_logging": True} if self.odoo_version() > (18,) else {}
+        config.parse_config(["-c", base.ODOO_CONFIG], **kw)
         config.parse_config(["-c", base.ODOO_CONFIG])
         report_configuration()
 
