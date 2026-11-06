@@ -92,7 +92,8 @@ def load_init_arguments(args):
         "--force",
         action="store_true",
         default=False,
-        help="Force the bootstrapping of repositories by stashing",
+        help="Force the bootstrapping of repositories with local changes. "
+        "The local changes are discarded",
     )
     parser.add_argument(
         "-u",
@@ -128,7 +129,8 @@ def load_aggregate_arguments(args):
         "--force",
         action="store_true",
         default=False,
-        help="Force the bootstrapping of repositories by stashing",
+        help="Force the bootstrapping of repositories with local changes. "
+        "The local changes are discarded",
     )
     parser.add_argument(
         "-d",
