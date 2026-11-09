@@ -161,7 +161,7 @@ class AggregateEnvironment(env.Environment):
 
     def _filter_outdated(self, repos, args):
         """Return only the repositories which need an aggregation"""
-        result = []
+        result, skipped = [], False
         for repo in repos:
             if not match_dir(repo.cwd, args.dirmatch):
                 continue
@@ -170,12 +170,17 @@ class AggregateEnvironment(env.Environment):
             path = os.path.relpath(repo.cwd)
             if state == "unchanged":
                 utils.info("Skipping %s repository %s", state, path)
+                skipped = True
             elif state == "dirty" and not args.force:
                 utils.warn("Skipping %s repository %s", state, path)
+                skipped = True
             else:
                 log = utils.warn if state == "dirty" else utils.info
                 log("Bootstrapping %s repository %s", state, path)
                 result.append(repo)
+
+        if skipped:
+            utils.info("Use --all to bootstrap the skipped repositories as well")
         return result
 
     def _aggregator(self, args, mode=None):

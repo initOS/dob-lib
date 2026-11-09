@@ -137,6 +137,15 @@ def test_filter_outdated(env, tmp_path):
     outdated.insert(1, repos["dirty"])
     assert env._filter_outdated(repos.values(), args) == outdated
 
+    hint = "Use --all to bootstrap the skipped repositories as well"
+    with mock.patch("doblib.aggregate.utils.info") as info:
+        env._filter_outdated(repos.values(), args)
+        info.assert_any_call(hint)
+
+        info.reset_mock()
+        env._filter_outdated(outdated, args)
+        assert mock.call(hint) not in info.call_args_list
+
 
 @mock.patch("doblib.aggregate.match_dir", return_value=False)
 def test_aggregate_repo(match_mock, tmp_path):
