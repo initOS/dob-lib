@@ -31,7 +31,7 @@ def merge_lines(repo):
 
 
 def repo_state(repo):
-    """Return why the repository needs an aggregation or None if it's up to date"""
+    """Return the state of the repository compared to the last aggregation"""
     if not os.path.isdir(os.path.join(repo.cwd, ".git")):
         return "new"
 
@@ -44,7 +44,13 @@ def repo_state(repo):
     except FileNotFoundError:
         return "incomplete"
 
-    return None if content == merge_lines(repo) else "changed"
+    if content != merge_lines(repo):
+        return "changed"
+
+    if utils.call("git", "status", "--porcelain", cwd=repo.cwd):
+        return "dirty"
+
+    return "unchanged"
 
 
 def aggregate(repo):
@@ -156,21 +162,21 @@ class AggregateEnvironment(env.Environment):
 
     def _filter_outdated(self, repos, args):
         """Return only the repositories which need an aggregation"""
-        result, skipped, reasons = [], 0, {}
+        result = []
         for repo in repos:
             if not match_dir(repo.cwd, args.dirmatch):
                 continue
 
-            reason = repo_state(repo)
-            if reason is None:
-                skipped += 1
+            state = repo_state(repo)
+            path = os.path.relpath(repo.cwd)
+            if state == "unchanged":
+                utils.info("Skipping %s repository %s", state, path)
+            elif state == "dirty" and not args.force:
+                utils.warn("Skipping %s repository %s", state, path)
             else:
+                log = utils.warn if state == "dirty" else utils.info
+                log("Bootstrapping %s repository %s", state, path)
                 result.append(repo)
-                reasons.setdefault(reason, []).append(os.path.relpath(repo.cwd))
-
-        utils.info("Skipping %s unchanged repositories", skipped)
-        for reason, paths in sorted(reasons.items()):
-            utils.info("Bootstrapping %s repositories: %s", reason, ", ".join(paths))
         return result
 
     def _aggregator(self, args, mode=None):

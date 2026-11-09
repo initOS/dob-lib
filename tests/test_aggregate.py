@@ -2,6 +2,7 @@
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
+import subprocess
 from queue import Empty
 from unittest import mock
 
@@ -66,18 +67,25 @@ def fake_repo(path, *merges):
     return repo
 
 
+def git_init(path):
+    subprocess.run(["git", "init", "-q", str(path)], check=True)
+
+
 def test_repo_state(tmp_path):
-    repo = fake_repo(tmp_path, ("origin", SHA1), ("nitrokey", SHA2))
+    repo = fake_repo(tmp_path, ("origin", SHA1), ("another", SHA2))
     assert repo_state(repo) == "new"
 
-    (tmp_path / ".git").mkdir()
+    git_init(tmp_path)
     assert repo_state(repo) == "incomplete"
 
     path = tmp_path / ".git" / COMMIT_FILE
-    path.write_text(f"origin {SHA1}\nnitrokey {SHA2}\n")
+    path.write_text(f"origin {SHA1}\nanother {SHA2}\n")
     assert commit_file(repo) == str(path)
     assert merge_lines(repo) == path.read_text()
-    assert repo_state(repo) is None
+    assert repo_state(repo) == "unchanged"
+
+    (tmp_path / "file").write_text("local change")
+    assert repo_state(repo) == "dirty"
 
     repo.merges[1]["ref"] = SHA1
     assert repo_state(repo) == "changed"
@@ -85,7 +93,7 @@ def test_repo_state(tmp_path):
     repo.merges.pop()
     assert repo_state(repo) == "changed"
 
-    repo.merges.append({"remote": "nitrokey", "ref": "18.0"})
+    repo.merges.append({"remote": "another", "ref": "18.0"})
     path.write_text(merge_lines(repo))
     assert repo_state(repo) == "unpinned"
 
@@ -110,19 +118,24 @@ def test_aggregate_commit_file(tmp_path):
 
 
 def test_filter_outdated(env, tmp_path):
-    repos = []
-    for name in ("same", "changed", "incomplete", "new", "other"):
-        repo = fake_repo(tmp_path / name, ("origin", SHA1))
-        repos.append(repo)
+    repos = {}
+    for name in ("unchanged", "changed", "dirty", "incomplete", "new", "other"):
+        repo = repos[name] = fake_repo(tmp_path / name, ("origin", SHA1))
         if name != "new":
-            (tmp_path / name / ".git").mkdir(parents=True)
-        if name in ("same", "changed", "other"):
+            git_init(tmp_path / name)
+        if name in ("unchanged", "changed", "dirty", "other"):
             (tmp_path / name / ".git" / COMMIT_FILE).write_text(merge_lines(repo))
-    repos[1].merges[0]["ref"] = SHA2
-    repos[4].merges[0]["ref"] = SHA2
+    repos["changed"].merges[0]["ref"] = SHA2
+    repos["other"].merges[0]["ref"] = SHA2
+    (tmp_path / "dirty" / "file").write_text("local change")
 
-    args = mock.MagicMock(dirmatch=f"{tmp_path}/[a-n]*")
-    assert env._filter_outdated(repos, args) == repos[1:4]
+    outdated = [repos["changed"], repos["incomplete"], repos["new"]]
+    args = mock.MagicMock(dirmatch=f"{tmp_path}/[!o]*", force=False)
+    assert env._filter_outdated(repos.values(), args) == outdated
+
+    args.force = True
+    outdated.insert(1, repos["dirty"])
+    assert env._filter_outdated(repos.values(), args) == outdated
 
 
 @mock.patch("doblib.aggregate.match_dir", return_value=False)
