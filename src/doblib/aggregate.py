@@ -2,6 +2,7 @@
 # License Apache-2.0 (http://www.apache.org/licenses/).
 
 import os
+import re
 import sys
 import threading
 import traceback
@@ -15,6 +16,55 @@ from git_aggregator.utils import ThreadNameKeeper
 
 from . import env, utils
 
+COMMIT_FILE = "dob-commit"
+CommitRegex = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
+
+
+def commit_file(repo):
+    """Path of the file storing the merges of the last successful aggregation"""
+    return os.path.join(repo.cwd, ".git", COMMIT_FILE)
+
+
+def merge_lines(repo):
+    """Merges of the repository in the format of the odoo.versions.yaml"""
+    return "".join(f"{merge['remote']} {merge['ref']}\n" for merge in repo.merges)
+
+
+def repo_state(repo):
+    """Return the state of the repository compared to the last aggregation"""
+    if not os.path.isdir(os.path.join(repo.cwd, ".git")):
+        return "new"
+
+    if not all(CommitRegex.fullmatch(merge["ref"]) for merge in repo.merges):
+        return "unpinned"
+
+    try:
+        with open(commit_file(repo), encoding="utf-8") as fp:
+            content = fp.read()
+    except FileNotFoundError:
+        return "incomplete"
+
+    if content != merge_lines(repo):
+        return "changed"
+
+    if utils.call("git", "status", "--porcelain", cwd=repo.cwd):
+        return "dirty"
+
+    return "unchanged"
+
+
+def aggregate(repo):
+    """Aggregate the repository and remember the merges after success"""
+    path = commit_file(repo)
+    if os.path.isfile(path):
+        os.remove(path)
+
+    repo.aggregate()
+
+    if os.path.isdir(os.path.dirname(path)):
+        with open(path, "w", encoding="utf-8") as fp:
+            fp.write(merge_lines(repo))
+
 
 def aggregate_repo(repo, args, sem, err_queue, mode=None):
     """Aggregate one repo according to the args"""
@@ -27,7 +77,7 @@ def aggregate_repo(repo, args, sem, err_queue, mode=None):
         elif mode == "show-closed-prs":
             repo.show_closed_prs()
         else:
-            repo.aggregate()
+            aggregate(repo)
     except Exception:
         err_queue.put_nowait(sys.exc_info())
     finally:
@@ -48,7 +98,15 @@ def load_init_arguments(args):
         "--force",
         action="store_true",
         default=False,
-        help="Force the bootstrapping of repositories by stashing",
+        help="Force the bootstrapping of repositories with local changes. "
+        "The local changes are discarded",
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        default=False,
+        help="Bootstrap all repositories instead of only new and updated ones",
     )
     parser.add_argument(
         "-d",
@@ -76,7 +134,8 @@ def load_aggregate_arguments(args):
         "--force",
         action="store_true",
         default=False,
-        help="Force the bootstrapping of repositories by stashing",
+        help="Force the bootstrapping of repositories with local changes. "
+        "The local changes are discarded",
     )
     parser.add_argument(
         "-d",
@@ -100,6 +159,30 @@ def load_aggregate_arguments(args):
 class AggregateEnvironment(env.Environment):
     """Class to bootstrap the environment"""
 
+    def _filter_outdated(self, repos, args):
+        """Return only the repositories which need an aggregation"""
+        result, skipped = [], False
+        for repo in repos:
+            if not match_dir(repo.cwd, args.dirmatch):
+                continue
+
+            state = repo_state(repo)
+            path = os.path.relpath(repo.cwd)
+            if state == "unchanged":
+                utils.info("Skipping %s repository %s", state, path)
+                skipped = True
+            elif state == "dirty" and not args.force:
+                utils.warn("Skipping %s repository %s", state, path)
+                skipped = True
+            else:
+                log = utils.warn if state == "dirty" else utils.info
+                log("Bootstrapping %s repository %s", state, path)
+                result.append(repo)
+
+        if skipped:
+            utils.info("Use --all to bootstrap the skipped repositories as well")
+        return result
+
     def _aggregator(self, args, mode=None):
         """Bootstrap the git repositories using git aggregator"""
 
@@ -110,14 +193,19 @@ class AggregateEnvironment(env.Environment):
         sem = threading.Semaphore(jobs)
         err_queue = Queue()
 
-        repos = self.get("repos", default={})
-        for repo_dict in get_repos(repos, args.force):
+        repos = [
+            Repo(**repo_dict)
+            for repo_dict in get_repos(self.get("repos", default={}), args.force)
+        ]
+        if mode is None and not getattr(args, "all", True):
+            repos = self._filter_outdated(repos, args)
+
+        for r in repos:
             if not err_queue.empty():
                 break
 
             with sem:
-                r = Repo(**repo_dict)
-                tname = os.path.basename(repo_dict["cwd"])
+                tname = os.path.basename(r.cwd)
 
                 if jobs > 1:
                     t = threading.Thread(
