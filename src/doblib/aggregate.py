@@ -102,12 +102,11 @@ def load_init_arguments(args):
         "The local changes are discarded",
     )
     parser.add_argument(
-        "-u",
-        "--update",
+        "-a",
+        "--all",
         action="store_true",
         default=False,
-        help="Only bootstrap repositories which are new, unpinned, changed in "
-        "the odoo.versions.yaml or weren't bootstrapped successfully last time",
+        help="Bootstrap all repositories instead of only new and updated ones",
     )
     parser.add_argument(
         "-d",
@@ -193,7 +192,7 @@ class AggregateEnvironment(env.Environment):
             Repo(**repo_dict)
             for repo_dict in get_repos(self.get("repos", default={}), args.force)
         ]
-        if mode is None and getattr(args, "update", False):
+        if mode is None and not getattr(args, "all", True):
             repos = self._filter_outdated(repos, args)
 
         for r in repos:

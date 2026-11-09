@@ -195,7 +195,12 @@ def test_bootstrap(repos, aggregate, repo, traceback, env):
         aggregate.assert_called_once()
 
         aggregate.reset_mock()
-        assert not env.init(["-u", "-j", "1"])
+        assert not env.init(["-a", "-j", "1"])
+        filter_mock.assert_not_called()
+        aggregate.assert_called_once()
+
+        aggregate.reset_mock()
+        assert not env.init(["-j", "1"])
         filter_mock.assert_called_once()
         aggregate.assert_not_called()
 
